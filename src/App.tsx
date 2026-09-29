@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAppStore } from './store/useAppStore';
 import { useAudioSettings } from './audio/useAudioSettings';
 import { PlayerBar, type Panel } from './components/PlayerBar';
+import { Board } from './components/Board';
 
 export default function App() {
   const theme = useAppStore((s) => s.data.settings.theme);
@@ -16,6 +17,7 @@ export default function App() {
     <div className="app">
       <h1 className="sr-only">Quest Board</h1>
       <PlayerBar onOpen={setPanel} />
+      <Board />
     </div>
   );
 }

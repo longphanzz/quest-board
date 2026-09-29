@@ -1,0 +1,76 @@
+.board {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding: 4px 8px 16px 4px;
+  flex: 1;
+  scroll-snap-type: x proximity;
+}
+.column {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  max-height: calc(100vh - 190px);
+  scroll-snap-align: start;
+}
+.column.is-done { border-color: var(--accent); }
+.column-header { display: flex; align-items: center; gap: 6px; }
+.column-title { font-family: var(--font-title); font-size: 11px; line-height: 1.5; flex: 1; margin: 0; overflow-wrap: anywhere; cursor: text; }
+.done-flag { color: var(--accent); }
+.column-count { font-family: var(--font-title); font-size: 9px; background: var(--bg); padding: 4px 6px; }
+.drag-handle { cursor: grab; background: none; border: none; color: var(--ink); font-size: 18px; padding: 0 4px; touch-action: none; }
+.column-name-input { flex: 1; }
+.column-menu { position: relative; }
+.column-menu summary { list-style: none; }
+.column-menu summary::-webkit-details-marker { display: none; }
+.column-menu .menu-items {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
+  display: flex; flex-direction: column; gap: 6px; padding: 8px; min-width: 190px;
+}
+.quest-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; min-height: 40px; padding: 2px 6px 6px 2px; }
+
+.quest-card {
+  background: var(--card);
+  color: var(--card-ink);
+  border: 3px solid var(--card-edge);
+  border-left-width: 8px;
+  box-shadow: 3px 3px 0 var(--shadow);
+  padding: 8px 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.quest-card.diff-easy { border-left-color: var(--easy); }
+.quest-card.diff-normal { border-left-color: var(--normal); }
+.quest-card.diff-hard { border-left-color: var(--hard); }
+.quest-card.diff-boss { border-color: var(--boss); animation: boss-blink 1.2s steps(1) infinite; }
+.quest-card.overdue { animation: overdue-shake 3s steps(1) infinite; }
+.quest-card.done { opacity: 0.75; }
+.quest-card.done .quest-title { text-decoration: line-through; }
+@keyframes boss-blink { 50% { border-color: var(--accent); } }
+@keyframes overdue-shake {
+  0%, 100% { transform: translateX(0); }
+  2% { transform: translateX(-3px); }
+  4% { transform: translateX(3px); }
+  6% { transform: translateX(-3px); }
+  8% { transform: translateX(0); }
+}
+.quest-title { font-size: 20px; overflow-wrap: anywhere; }
+.quest-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 18px; margin-top: 4px; }
+.deadline.overdue { color: var(--danger); }
+.deadline.today { color: #b86f00; }
+.quest-labels { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.label-chip { font-size: 16px; padding: 0 6px; color: #1a1c2c; border: 2px solid #1a1c2c; }
+
+.quick-add { display: grid; gap: 6px; }
+.quick-add-actions { display: flex; gap: 6px; }
+.add-column { flex: 0 0 auto; }
+.drag-overlay .quest-card { transform: rotate(3deg); cursor: grabbing; }
+.column-ghost { padding: 12px; font-family: var(--font-title); font-size: 11px; width: 300px; }
+
+@media (max-width: 767px) {
+  .board { scroll-snap-type: x mandatory; }
+  .column { flex-basis: 85vw; max-height: none; }
+}
