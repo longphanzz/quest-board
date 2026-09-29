@@ -9,6 +9,7 @@ import { useAppStore } from '../store/useAppStore';
 import { playSfx } from '../audio/sfx';
 import { ColumnView } from './ColumnView';
 import { QuestCard } from './QuestCard';
+import { QuestModal } from './QuestModal';
 import './Board.css';
 
 type DragKind = 'quest' | 'column';
@@ -29,7 +30,7 @@ export function Board() {
   // While a quest is dragged we preview cross-column moves locally; the store (and XP) only changes on drop.
   const [preview, setPreview] = useState<Column[] | null>(null);
   const [active, setActive] = useState<{ id: string; kind: DragKind } | null>(null);
-  const [, setOpenQuestId] = useState<string | null>(null);
+  const [openQuestId, setOpenQuestId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -99,6 +100,7 @@ export function Board() {
   const activeColumn = active?.kind === 'column' ? columns.find((c) => c.id === active.id) : undefined;
 
   return (
+    <>
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
@@ -123,5 +125,7 @@ export function Board() {
         ) : null}
       </DragOverlay>
     </DndContext>
+      {openQuestId && <QuestModal questId={openQuestId} onClose={() => setOpenQuestId(null)} />}
+    </>
   );
 }

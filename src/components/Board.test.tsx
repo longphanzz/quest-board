@@ -46,6 +46,12 @@ describe('Board', () => {
     expect(within(column('Doing')).getByRole('button', { name: 'Delete' })).toBeDisabled();
   });
 
+  it('opens the quest editor when a card is clicked', async () => {
+    render(<Board />);
+    await userEvent.click(screen.getByText(/Welcome, hero!/));
+    expect(screen.getByRole('dialog', { name: 'Edit Quest' })).toBeInTheDocument();
+  });
+
   it('asks before deleting a column that holds quests', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<Board />);
