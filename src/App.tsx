@@ -7,6 +7,7 @@ import { BackupBanner } from './components/BackupBanner';
 import { EffectsLayer } from './components/EffectsLayer';
 import { AchievementsPanel } from './components/AchievementsPanel';
 import { PixelEditor } from './components/PixelEditor';
+import { SettingsPanel } from './components/SettingsPanel';
 
 export default function App() {
   const theme = useAppStore((s) => s.data.settings.theme);
@@ -26,6 +27,7 @@ export default function App() {
       <Board />
       <EffectsLayer />
       {panel === 'achievements' && <AchievementsPanel onClose={close} />}
+      {panel === 'settings' && <SettingsPanel onClose={close} onEditAvatar={() => setPanel('editor')} />}
       {panel === 'editor' && <PixelEditor onClose={close} />}
     </div>
   );

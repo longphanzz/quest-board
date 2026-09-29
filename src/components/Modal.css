@@ -21,3 +21,9 @@
 .swatch { width: 26px; height: 26px; border: 3px solid var(--border); cursor: pointer; padding: 0; }
 .swatch[aria-pressed='true'] { outline: 3px solid var(--accent); outline-offset: 1px; }
 .completion-note { margin: 0; color: var(--good); }
+
+.settings-section { display: grid; gap: 8px; margin-bottom: 16px; }
+.settings-section h3 { font-family: var(--font-title); font-size: 11px; margin: 0; color: var(--accent); }
+.range-row { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 8px; }
+.check-row { display: flex; align-items: center; gap: 8px; }
+.settings-note { margin: 0; color: var(--ink-dim); }
