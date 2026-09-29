@@ -47,6 +47,11 @@ describe('QuestModal', () => {
     expect(useEffectsStore.getState().items.at(-1)?.event).toMatchObject({ tone: 'error' });
   });
 
+  it('shows when the quest was created', () => {
+    render(<QuestModal questId={questId} onClose={() => {}} />);
+    expect(screen.getByText(/^Created: \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/)).toBeInTheDocument();
+  });
+
   it('deletes after confirmation and closes on Escape', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     const onClose = vi.fn();

@@ -3,6 +3,7 @@ import type { Difficulty } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { LABEL_COLORS } from '../store/defaults';
 import { Modal } from './Modal';
+import { formatDateTime } from '../game/formatDate';
 
 const DIFFICULTIES: { value: Difficulty; label: string; badge: string }[] = [
   { value: 'easy', label: 'Easy', badge: '★' },
@@ -134,9 +135,10 @@ export function QuestModal({ questId, onClose }: { questId: string; onClose: () 
             <button type="button" className="pixel-btn" onClick={createLabel}>Add label</button>
           </div>
         </fieldset>
+        <p className="settings-note">Created: {formatDateTime(quest.createdAt)}</p>
         {quest.completion && (
           <p className="completion-note">
-            ✅ Completed {new Date(quest.completion.at).toLocaleDateString()} · +{quest.completion.xp} XP
+            ✅ Completed: {formatDateTime(quest.completion.at)} · +{quest.completion.xp} XP
           </p>
         )}
         <div className="modal-actions">

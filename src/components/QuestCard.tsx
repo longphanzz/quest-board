@@ -5,6 +5,7 @@ import type { Difficulty, Quest } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { deadlineInfo } from '../game/deadline';
 import { useToday } from '../hooks/useToday';
+import { formatShortDate, isoToDateKey } from '../game/formatDate';
 
 const DIFFICULTY_BADGE: Record<Difficulty, string> = { easy: '★☆☆', normal: '★★☆', hard: '★★★', boss: '💀 BOSS' };
 
@@ -24,9 +25,14 @@ export function QuestCard({ quest, onOpen }: { quest: Quest; onOpen?: () => void
         <span className="quest-stars" aria-label={`Difficulty: ${quest.difficulty}`}>{DIFFICULTY_BADGE[quest.difficulty]}</span>
         {info && (
           <span className={`deadline ${info.overdue ? 'overdue' : ''} ${info.dueToday ? 'today' : ''}`}>
-            {info.overdue ? '⚠️ ' : '⏳ '}{info.text}
+            {info.overdue ? '⚠️ ' : '⏳ '}{formatShortDate(quest.deadline!, today)} · {info.text}
           </span>
         )}
+      </div>
+      <div className="quest-date">
+        {quest.completion
+          ? `✅ ${formatShortDate(isoToDateKey(quest.completion.at), today)}`
+          : `🗓 ${formatShortDate(isoToDateKey(quest.createdAt), today)}`}
       </div>
       {questLabels.length > 0 && (
         <div className="quest-labels">

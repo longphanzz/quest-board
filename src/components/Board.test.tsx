@@ -46,6 +46,27 @@ describe('Board', () => {
     expect(within(column('Doing')).getByRole('button', { name: 'Delete' })).toBeDisabled();
   });
 
+  it('shows created, deadline and completed dates on cards', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 29, 10, 0));
+    try {
+      const data = createDefaultData();
+      const [todo, , done] = data.columns;
+      const welcome = data.quests[todo.questIds[0]];
+      welcome.deadline = '2026-10-03';
+      data.quests.old = { ...welcome, id: 'old', title: 'Old one', deadline: null,
+        completion: { at: new Date(2026, 8, 27, 8, 0).toISOString(), xp: 10, difficulty: 'easy', early: false } };
+      done.questIds.push('old');
+      useAppStore.setState({ data });
+      render(<Board />);
+      expect(within(column('To Do')).getByText('🗓 29/09')).toBeInTheDocument();
+      expect(within(column('To Do')).getByText(/⏳ 03\/10 · 4 days/)).toBeInTheDocument();
+      expect(within(column('Done')).getByText('✅ 27/09')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('opens the quest editor when a card is clicked', async () => {
     render(<Board />);
     await userEvent.click(screen.getByText(/Welcome, hero!/));

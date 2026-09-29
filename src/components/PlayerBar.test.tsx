@@ -18,6 +18,7 @@ describe('PlayerBar', () => {
     expect(screen.getByText('LV 3')).toBeInTheDocument();
     expect(screen.getByText('XP 50/300')).toBeInTheDocument();
     expect(screen.getByTitle('Daily streak')).toHaveTextContent('4');
+    expect(screen.getByTitle('Today')).toHaveTextContent(/📅 \w{3} \d{2}\/\d{2}\/\d{4}/);
     expect(screen.getByRole('progressbar', { name: 'Experience' })).toHaveAttribute('aria-valuenow', '50');
   });
 

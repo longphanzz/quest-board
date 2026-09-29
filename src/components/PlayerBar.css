@@ -29,3 +29,4 @@
   .player-bar { gap: 10px; }
   .player-stats { order: 3; flex-basis: 100%; }
 }
+.player-date { font-family: var(--font-title); font-size: 11px; color: var(--ink-dim); white-space: nowrap; }

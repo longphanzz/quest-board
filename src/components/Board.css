@@ -74,3 +74,4 @@
   .board { scroll-snap-type: x mandatory; }
   .column { flex-basis: 85vw; max-height: none; }
 }
+.quest-date { font-size: 16px; opacity: 0.75; margin-top: 2px; }

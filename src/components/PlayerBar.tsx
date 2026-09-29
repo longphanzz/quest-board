@@ -2,6 +2,7 @@ import { useAppStore } from '../store/useAppStore';
 import { levelProgress } from '../game/level';
 import { displayedStreak } from '../game/streak';
 import { useToday } from '../hooks/useToday';
+import { formatToday } from '../game/formatDate';
 import { PlayerAvatar } from './PlayerAvatar';
 import './PlayerBar.css';
 
@@ -28,6 +29,7 @@ export function PlayerBar({ onOpen }: { onOpen: (panel: Panel) => void }) {
         </div>
         <div className="xp-text">XP {current}/{needed}</div>
       </div>
+      <div className="player-date" title="Today">📅 {formatToday(today)}</div>
       <div className="player-streak" title="Daily streak">
         🔥 {streak}
         {player.shields > 0 && (
