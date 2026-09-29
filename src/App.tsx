@@ -3,10 +3,14 @@ import { useAppStore } from './store/useAppStore';
 import { useAudioSettings } from './audio/useAudioSettings';
 import { PlayerBar, type Panel } from './components/PlayerBar';
 import { Board } from './components/Board';
+import { BackupBanner } from './components/BackupBanner';
+import { EffectsLayer } from './components/EffectsLayer';
+import { AchievementsPanel } from './components/AchievementsPanel';
 
 export default function App() {
   const theme = useAppStore((s) => s.data.settings.theme);
-  const [, setPanel] = useState<Panel | null>(null);
+  const [panel, setPanel] = useState<Panel | null>(null);
+  const close = () => setPanel(null);
   useAudioSettings();
 
   useEffect(() => {
@@ -17,7 +21,10 @@ export default function App() {
     <div className="app">
       <h1 className="sr-only">Quest Board</h1>
       <PlayerBar onOpen={setPanel} />
+      <BackupBanner />
       <Board />
+      <EffectsLayer />
+      {panel === 'achievements' && <AchievementsPanel onClose={close} />}
     </div>
   );
 }

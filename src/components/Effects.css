@@ -1,0 +1,67 @@
+.effects-layer { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+.xp-burst { position: absolute; left: 50%; top: 40%; }
+.xp-float {
+  position: absolute; left: 0; top: 0;
+  font-family: var(--font-title); font-size: 18px; white-space: nowrap;
+  color: var(--xp); text-shadow: 3px 3px 0 var(--shadow);
+  animation: xp-rise 1.5s steps(10) forwards;
+}
+.xp-float.negative { left: 50%; top: 40%; color: var(--danger); }
+@keyframes xp-rise {
+  from { transform: translate(-50%, 0); opacity: 1; }
+  to { transform: translate(-50%, -120px); opacity: 0; }
+}
+.particle {
+  position: absolute; left: 0; top: 0; width: 8px; height: 8px;
+  background: var(--accent);
+  animation: particle-fly 0.8s steps(6) forwards;
+}
+.particle:nth-child(3n) { background: var(--xp); }
+.particle:nth-child(3n + 1) { background: #f4f4f4; }
+@keyframes particle-fly {
+  from { transform: rotate(var(--angle)) translateX(0); opacity: 1; }
+  to { transform: rotate(var(--angle)) translateX(var(--dist)); opacity: 0; }
+}
+.level-up-overlay {
+  position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+  background: rgb(26 28 44 / 0.55);
+  animation: overlay-out 2.8s steps(1) forwards;
+}
+.level-up-text {
+  font-family: var(--font-title); font-size: clamp(28px, 7vw, 64px);
+  color: var(--accent); text-shadow: 6px 6px 0 var(--danger);
+  animation: blink 0.4s steps(1) infinite;
+}
+.level-up-level { font-family: var(--font-title); font-size: 20px; margin-top: 16px; color: #f4f4f4; }
+@keyframes blink { 50% { opacity: 0.3; } }
+@keyframes overlay-out { 90% { opacity: 1; } 100% { opacity: 0; } }
+
+.toast-stack {
+  position: fixed; right: 16px; bottom: 16px; z-index: 45;
+  display: flex; flex-direction: column; gap: 8px;
+  max-width: calc(100vw - 32px); pointer-events: none;
+}
+.toast {
+  display: flex; gap: 10px; align-items: center; padding: 10px 12px;
+  background: var(--panel); border: 3px solid var(--border); box-shadow: 3px 3px 0 var(--shadow);
+  animation: toast-in 0.3s steps(3);
+}
+.toast-error { border-color: var(--danger); }
+.achievement-toast { border-color: var(--accent); }
+.toast-title { font-family: var(--font-title); font-size: 9px; color: var(--accent); margin-bottom: 4px; }
+.toast-icon { font-size: 28px; }
+@keyframes toast-in { from { transform: translateX(40px); opacity: 0; } }
+
+.backup-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 12px; background: var(--panel-alt); }
+.backup-banner p { margin: 0; flex: 1; min-width: 200px; }
+
+.achievement-grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.achievement { display: flex; gap: 10px; padding: 10px; background: var(--panel-alt); border: 3px solid var(--border); }
+.achievement.locked { opacity: 0.55; }
+.achievement.locked .badge { filter: grayscale(1); }
+.badge { flex: 0 0 44px; height: 44px; display: grid; place-items: center; font-size: 26px; background: var(--bg); border: 3px solid var(--accent); }
+.achievement-name { font-family: var(--font-title); font-size: 10px; line-height: 1.5; margin-bottom: 4px; }
+.achievement-desc, .achievement-date { font-size: 17px; color: var(--ink-dim); }
