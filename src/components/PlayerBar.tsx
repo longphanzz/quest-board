@@ -1,7 +1,7 @@
 import { useAppStore } from '../store/useAppStore';
 import { levelProgress } from '../game/level';
 import { displayedStreak } from '../game/streak';
-import { toDateKey } from '../game/dates';
+import { useToday } from '../hooks/useToday';
 import { PlayerAvatar } from './PlayerAvatar';
 import './PlayerBar.css';
 
@@ -11,9 +11,10 @@ export function PlayerBar({ onOpen }: { onOpen: (panel: Panel) => void }) {
   const player = useAppStore((s) => s.data.player);
   const muted = useAppStore((s) => s.data.settings.muted);
   const updateSettings = useAppStore((s) => s.updateSettings);
+  const today = useToday();
 
   const { level, current, needed } = levelProgress(player.totalXp);
-  const streak = displayedStreak(player, toDateKey(new Date()));
+  const streak = displayedStreak(player, today);
 
   return (
     <header className="player-bar pixel-box">

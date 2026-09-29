@@ -2,6 +2,7 @@ import type { AppData, AvatarFrames, Column, Frame, Label, Player, Quest, Settin
 import { MOODS } from '../types';
 import { toDateKey } from '../game/dates';
 import { createSettings } from './defaults';
+import { MAX_SHIELDS } from '../game/streak';
 
 export type ImportResult = { ok: true; data: AppData } | { ok: false; error: string };
 
@@ -41,8 +42,9 @@ function isPlayer(v: unknown): v is Player {
   if (!isObj(v) || !isObj(v.stats) || !isObj(v.unlockedAchievements)) return false;
   const s = v.stats;
   return (
-    isNum(v.totalXp) && v.totalXp >= 0 && isNum(v.streak) && isNullableStr(v.lastActiveDate) && isNum(v.shields) &&
-    isNum(s.completed) && isNum(s.bossesSlain) && isNum(s.earlyFinishes) &&
+    isNum(v.totalXp) && v.totalXp >= 0 && isNum(v.streak) && v.streak >= 0 && isNullableStr(v.lastActiveDate) &&
+    isNum(v.shields) && v.shields >= 0 && v.shields <= MAX_SHIELDS &&
+    [s.completed, s.bossesSlain, s.earlyFinishes].every((n) => isNum(n) && n >= 0) &&
     Object.values(v.unlockedAchievements).every(isStr)
   );
 }
@@ -73,6 +75,7 @@ export function validateData(raw: unknown, now: Date = new Date()): ImportResult
   const { columns, quests, labels, player, avatar } = raw;
   if (!Array.isArray(columns) || !columns.every(isColumn)) return DAMAGED;
   if (columns.filter((c) => c.isDone).length !== 1) return DAMAGED;
+  if (new Set(columns.map((c) => c.id)).size !== columns.length) return DAMAGED;
   if (!isObj(quests) || !Object.values(quests).every(isQuest)) return DAMAGED;
   const questMap = quests as Record<string, Quest>;
   const placed = columns.flatMap((c) => c.questIds);

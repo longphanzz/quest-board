@@ -27,6 +27,10 @@ describe('parseBackup', () => {
     ['a bad difficulty', (d: any) => { d.quests.q.difficulty = 'legendary'; }],
     ['a frame of the wrong size', (d: any) => { d.avatar.frames.normal = [null]; }],
     ['a missing player', (d: any) => { delete d.player; }],
+    ['duplicate column ids', (d: any) => { d.columns[1].id = d.columns[0].id; }],
+    ['a negative streak', (d: any) => { d.player.streak = -1; }],
+    ['too many shields', (d: any) => { d.player.shields = 3; }],
+    ['negative stats', (d: any) => { d.player.stats.completed = -2; }],
   ])('rejects %s', (_name, mutate) => {
     const raw = clone(withQuest(emptyBoard(), 'To Do', { id: 'q' }));
     mutate(raw);

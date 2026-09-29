@@ -67,6 +67,15 @@ describe('useEffectsStore', () => {
   });
 });
 
+describe('replaceData', () => {
+  it('re-checks achievements right after an import', () => {
+    const data = createDefaultData();
+    data.player.stats.completed = 1;
+    app().replaceData(data);
+    expect(app().data.player.unlockedAchievements['first-blood']).toBeDefined();
+  });
+});
+
 describe('review fixes: storage', () => {
   it('keeps a copy of unparseable saved data instead of silently overwriting it', async () => {
     localStorage.setItem(STORAGE_KEY, '{not json');

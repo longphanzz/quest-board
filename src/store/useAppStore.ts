@@ -3,7 +3,7 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 import type { AppData, AvatarFrames, Result, Settings } from '../types';
 import * as board from './board';
 import type { QuestInput, QuestPatch } from './board';
-import { moveQuest as moveQuestLogic } from './progress';
+import { finalize, moveQuest as moveQuestLogic } from './progress';
 import { createDefaultData } from './defaults';
 import { validateData } from './persistence';
 import { useEffectsStore } from './useEffectsStore';
@@ -117,7 +117,7 @@ export const useAppStore = create<AppState>()(
         updateSettings: (patch) => set((s) => ({ data: { ...s.data, settings: { ...s.data.settings, ...patch } } })),
         markExported: () => get().updateSettings({ lastExportAt: new Date().toISOString() }),
         snoozeBackup: () => get().updateSettings({ backupSnoozedUntil: new Date(Date.now() + 86_400_000).toISOString() }),
-        replaceData: (data) => set({ data }),
+        replaceData: (data) => void run((_, now) => finalize(data, [], now)),
       };
     },
     {

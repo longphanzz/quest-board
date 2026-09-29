@@ -4,13 +4,14 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Difficulty, Quest } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { deadlineInfo } from '../game/deadline';
-import { toDateKey } from '../game/dates';
+import { useToday } from '../hooks/useToday';
 
 const DIFFICULTY_BADGE: Record<Difficulty, string> = { easy: '★☆☆', normal: '★★☆', hard: '★★★', boss: '💀 BOSS' };
 
 export function QuestCard({ quest, onOpen }: { quest: Quest; onOpen?: () => void }) {
   const labels = useAppStore((s) => s.data.labels);
-  const info = quest.deadline && !quest.completion ? deadlineInfo(quest.deadline, toDateKey(new Date())) : null;
+  const today = useToday();
+  const info = quest.deadline && !quest.completion ? deadlineInfo(quest.deadline, today) : null;
   const questLabels = labels.filter((l) => quest.labelIds.includes(l.id));
   const classes = ['quest-card', `diff-${quest.difficulty}`, info?.overdue ? 'overdue' : '', quest.completion ? 'done' : '']
     .filter(Boolean)
@@ -48,7 +49,7 @@ export function SortableQuestCard({ quest, columnId, onOpen }: SortableProps) {
   const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     listeners?.onKeyDown?.(e);
-    if (e.key === 'Enter') onOpen(quest.id);
+    if (e.key === 'Enter' && !isDragging) onOpen(quest.id);
   };
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} onKeyDown={onKeyDown} aria-label={`Quest: ${quest.title}`}>

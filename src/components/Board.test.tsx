@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Board } from './Board';
 import { useAppStore } from '../store/useAppStore';
@@ -50,6 +50,32 @@ describe('Board', () => {
     render(<Board />);
     await userEvent.click(screen.getByText(/Welcome, hero!/));
     expect(screen.getByRole('dialog', { name: 'Edit Quest' })).toBeInTheDocument();
+  });
+
+  it('closes the column menu on outside click and on Escape', async () => {
+    render(<Board />);
+    const menu = () => within(column('Doing')).getByLabelText('Doing options').closest('details')!;
+    await userEvent.click(within(column('Doing')).getByLabelText('Doing options'));
+    expect(menu()).toHaveAttribute('open');
+    await userEvent.click(document.body);
+    expect(menu()).not.toHaveAttribute('open');
+    await userEvent.click(within(column('Doing')).getByLabelText('Doing options'));
+    await userEvent.keyboard('{Escape}');
+    expect(menu()).not.toHaveAttribute('open');
+  });
+
+  it('does not open the editor when Enter is pressed during a keyboard drag', async () => {
+    render(<Board />);
+    const card = screen.getByRole('button', { name: /Quest: Welcome/ });
+    card.focus();
+    fireEvent.keyDown(card, { key: 'Enter', code: 'Enter' }); // not dragging: Enter opens
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
+    fireEvent.keyDown(card, { key: ' ', code: 'Space' }); // pick up
+    expect(card).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(card, { key: 'Enter', code: 'Enter' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.keyDown(card, { key: 'Escape', code: 'Escape' });
   });
 
   it('asks before deleting a column that holds quests', async () => {

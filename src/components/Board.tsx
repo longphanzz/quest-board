@@ -10,6 +10,7 @@ import { playSfx } from '../audio/sfx';
 import { ColumnView } from './ColumnView';
 import { QuestCard } from './QuestCard';
 import { QuestModal } from './QuestModal';
+import { resolveDrop } from './boardDrop';
 import './Board.css';
 
 type DragKind = 'quest' | 'column';
@@ -83,11 +84,9 @@ export function Board() {
     }
     if (kind !== 'quest' || !snapshot) return;
     const id = String(a.id);
-    const column = snapshot.find((c) => c.id === findColumnId(snapshot, id));
-    if (!column) return;
-    const overIndex = column.questIds.indexOf(String(over.id));
-    const index = overIndex >= 0 ? overIndex : column.questIds.indexOf(id);
-    moveQuest(id, column.id, index);
+    const target = resolveDrop(columns, snapshot, id, String(over.id));
+    if (!target) return; // dropped back in place: nothing to save, no sound
+    moveQuest(id, target.columnId, target.index);
     playSfx('drop');
   };
 

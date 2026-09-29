@@ -1,7 +1,7 @@
 import { useEffect, useReducer } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useEffectsStore } from '../store/useEffectsStore';
-import { toDateKey } from '../game/dates';
+import { useToday } from '../hooks/useToday';
 import { isStreakBroken } from '../game/streak';
 import { isOverdue } from '../game/deadline';
 import { MASCOT, resolveFrame, selectMood } from '../avatar/mood';
@@ -12,6 +12,7 @@ export function PlayerAvatar({ size }: { size: number }) {
   const player = useAppStore((s) => s.data.player);
   const quests = useAppStore((s) => s.data.quests);
   const transient = useEffectsStore((s) => s.mood);
+  const today = useToday();
   const [, rerender] = useReducer((n: number) => n + 1, 0);
 
   useEffect(() => {
@@ -22,7 +23,6 @@ export function PlayerAvatar({ size }: { size: number }) {
     return () => clearTimeout(timer);
   }, [transient]);
 
-  const today = toDateKey(new Date());
   const overdueCount = Object.values(quests).filter((q) => isOverdue(q, today)).length;
   const mood = selectMood({ now: Date.now(), transient, streakBroken: isStreakBroken(player, today), overdueCount });
   const { frame, animation } = resolveFrame(frames, mood, MASCOT);

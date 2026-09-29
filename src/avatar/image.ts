@@ -17,8 +17,7 @@ export async function imageFileToFrame(file: File): Promise<Frame> {
     canvas.height = GRID;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas unavailable');
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingEnabled = false; // nearest-neighbour keeps crisp pixel edges (spec §8)
     const scale = Math.min(GRID / img.width, GRID / img.height);
     const w = Math.max(1, Math.round(img.width * scale));
     const h = Math.max(1, Math.round(img.height * scale));

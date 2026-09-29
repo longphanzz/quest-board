@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Column } from '../types';
 import { useAppStore } from '../store/useAppStore';
 
@@ -7,6 +7,22 @@ export function ColumnMenu({ column, onRename }: { column: Column; onRename: () 
   const deleteColumn = useAppStore((s) => s.deleteColumn);
   const ref = useRef<HTMLDetailsElement>(null);
   const close = () => ref.current?.removeAttribute('open');
+
+  useEffect(() => {
+    const closeMenu = () => ref.current?.removeAttribute('open');
+    const onMouseDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) closeMenu();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeMenu();
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
 
   const remove = () => {
     close();
