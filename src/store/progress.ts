@@ -77,9 +77,13 @@ export function moveQuest(data: AppData, questId: string, toColumnId: string, to
   const dest = columns.find((c) => c.id === toColumnId)!;
   dest.questIds.splice(Math.max(0, Math.min(toIndex, dest.questIds.length)), 0, questId);
 
+  // Only crossing into / out of a column changes completion. Reordering in place never does,
+  // even if the Done role moved to another column after the quest was placed.
+  const sourceId = data.columns.find((c) => c.questIds.includes(questId))?.id;
+  const crossed = sourceId !== toColumnId;
   let result: Result = { data: { ...data, columns }, events: [] };
-  if (target.isDone && !quest.completion) result = completeQuest(result.data, questId, now);
-  else if (!target.isDone && quest.completion) result = uncompleteQuest(result.data, questId);
+  if (crossed && target.isDone && !quest.completion) result = completeQuest(result.data, questId, now);
+  else if (crossed && !target.isDone && quest.completion) result = uncompleteQuest(result.data, questId);
   return finalize(result.data, result.events, now);
 }
 

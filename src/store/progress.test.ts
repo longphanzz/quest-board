@@ -102,3 +102,22 @@ describe('finalize', () => {
     expect(finalize(data, [], at(0)).events).toEqual([]);
   });
 });
+
+describe('moveQuest after the Done role moved (review fix)', () => {
+  it('does not change XP when reordering inside the column a quest already sits in', () => {
+    let data = withQuest(emptyBoard(), 'To Do', { id: 'a' });
+    data = withQuest(data, 'Doing', { id: 'open1' });
+    data = withQuest(data, 'Doing', { id: 'open2' });
+    data = moveQuest(data, 'a', columnId(data, 'Done'), 0, T0).data;
+    data = withQuest(data, 'Done', { id: 'b' });
+    const xp = data.player.totalXp;
+    // "Doing" becomes the Done column: 'a' stays completed in the old Done, open quests sit in the new Done.
+    data = { ...data, columns: data.columns.map((c) => ({ ...c, isDone: c.name === 'Doing' })) };
+    const inOldDone = moveQuest(data, 'a', columnId(data, 'Done'), 1, T0);
+    expect(inOldDone.data.player.totalXp).toBe(xp);
+    expect(inOldDone.data.quests.a.completion).not.toBeNull();
+    const inNewDone = moveQuest(data, 'open1', columnId(data, 'Doing'), 1, T0);
+    expect(inNewDone.data.player.totalXp).toBe(xp);
+    expect(inNewDone.data.quests.open1.completion).toBeNull();
+  });
+});

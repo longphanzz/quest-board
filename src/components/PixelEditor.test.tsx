@@ -50,3 +50,28 @@ describe('PixelEditor', () => {
     expect(frames().normal).toBeNull();
   });
 });
+
+describe('PixelEditor unsaved changes (review fix)', () => {
+  it('asks before discarding a drawing and stays open when declined', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const onClose = vi.fn();
+    render(<PixelEditor onClose={onClose} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Start from mascot' }));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(onClose).not.toHaveBeenCalled();
+    confirm.mockReturnValue(true);
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes without asking when nothing changed', async () => {
+    const confirm = vi.spyOn(window, 'confirm');
+    const onClose = vi.fn();
+    render(<PixelEditor onClose={onClose} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(confirm).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+});

@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent, type KeyboardEvent, type PointerEvent } from 'react';
 import type { Frame, Mood } from '../types';
+import { MOODS } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { useEffectsStore } from '../store/useEffectsStore';
 import { GRID, PALETTE, emptyFrame } from '../avatar/mascot';
@@ -32,11 +33,17 @@ export function PixelEditor({ onClose }: { onClose: () => void }) {
   const resetAvatar = useAppStore((s) => s.resetAvatar);
 
   const [tab, setTab] = useState<Mood>('normal');
+  const [initial] = useState<Record<Mood, Frame>>(() => ({
+    normal: saved.normal ?? emptyFrame(),
+    happy: saved.happy ?? emptyFrame(),
+    levelUp: saved.levelUp ?? emptyFrame(),
+    sad: saved.sad ?? emptyFrame(),
+  }));
   const [histories, setHistories] = useState<Record<Mood, History>>(() => ({
-    normal: historyInit(saved.normal ?? emptyFrame()),
-    happy: historyInit(saved.happy ?? emptyFrame()),
-    levelUp: historyInit(saved.levelUp ?? emptyFrame()),
-    sad: historyInit(saved.sad ?? emptyFrame()),
+    normal: historyInit(initial.normal),
+    happy: historyInit(initial.happy),
+    levelUp: historyInit(initial.levelUp),
+    sad: historyInit(initial.sad),
   }));
   const [tool, setTool] = useState<Tool>('pen');
   const [color, setColor] = useState<string>(PALETTE[0]);
@@ -125,6 +132,12 @@ export function PixelEditor({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
+  const dirty = MOODS.some((m) => histories[m].present !== initial[m]);
+  const requestClose = () => {
+    if (dirty && !window.confirm('Discard your unsaved drawing?')) return;
+    onClose();
+  };
+
   const reset = () => {
     if (!window.confirm('Reset your avatar to the default mascot? Your drawings will be lost.')) return;
     resetAvatar();
@@ -132,7 +145,7 @@ export function PixelEditor({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal title="Avatar Workshop" onClose={onClose} wide>
+    <Modal title="Avatar Workshop" onClose={requestClose} wide>
       <div className="editor" onKeyDown={onKeyDown}>
         <div className="editor-main">
           <div className="editor-tabs" role="tablist">
@@ -199,7 +212,7 @@ export function PixelEditor({ onClose }: { onClose: () => void }) {
           <div className="modal-actions">
             <button className="pixel-btn danger" onClick={reset}>Reset to default</button>
             <span className="spacer" />
-            <button className="pixel-btn ghost" onClick={onClose}>Cancel</button>
+            <button className="pixel-btn ghost" onClick={requestClose}>Cancel</button>
             <button className="pixel-btn primary" onClick={save}>Save</button>
           </div>
         </div>

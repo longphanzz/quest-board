@@ -66,3 +66,28 @@ describe('useEffectsStore', () => {
     }
   });
 });
+
+describe('review fixes: storage', () => {
+  it('keeps a copy of unparseable saved data instead of silently overwriting it', async () => {
+    localStorage.setItem(STORAGE_KEY, '{not json');
+    await useAppStore.persist.rehydrate();
+    expect(localStorage.getItem(CORRUPT_KEY)).toBe('{not json');
+    expect(fx().items.some((i) => i.event.type === 'toast' && i.event.tone === 'error')).toBe(true);
+  });
+
+  it('loads valid data saved under another version number', async () => {
+    const data = createDefaultData();
+    data.player.totalXp = 42;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ state: { data }, version: 7 }));
+    await useAppStore.persist.rehydrate();
+    expect(app().data.player.totalXp).toBe(42);
+  });
+
+  it('picks up changes saved by another window', () => {
+    const data = createDefaultData();
+    data.player.totalXp = 99;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ state: { data }, version: 1 }));
+    window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
+    expect(app().data.player.totalXp).toBe(99);
+  });
+});

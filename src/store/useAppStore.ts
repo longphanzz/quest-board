@@ -13,13 +13,36 @@ export const CORRUPT_KEY = 'quest-board-corrupt-copy';
 
 let saveWarningShown = false;
 
+/** Keeps unreadable saved data under CORRUPT_KEY so the next save cannot destroy it. */
+function keepCorruptCopy(raw: string): void {
+  try {
+    localStorage.setItem(CORRUPT_KEY, raw);
+  } catch {
+    /* ignore */
+  }
+  queueMicrotask(() =>
+    useEffectsStore.getState().toast('Saved data was damaged — started a fresh board. A copy was kept.', 'error'),
+  );
+}
+
 const safeStorage: StateStorage = {
   getItem: (key) => {
+    let value: string | null;
     try {
-      return localStorage.getItem(key);
+      value = localStorage.getItem(key);
     } catch {
       return null;
     }
+    if (value === null) return null;
+    try {
+      const parsed = JSON.parse(value) as { state?: { data?: unknown } } | null;
+      if (parsed?.state?.data === undefined) throw new Error('missing state');
+    } catch {
+      // zustand would swallow this parse error and later overwrite the value.
+      keepCorruptCopy(value);
+      return null;
+    }
+    return value;
   },
   setItem: (key, value) => {
     try {
@@ -102,21 +125,23 @@ export const useAppStore = create<AppState>()(
       version: 1,
       storage: createJSONStorage(() => safeStorage),
       partialize: (state) => ({ data: state.data }),
+      // Accept any stored version; validateData in merge decides whether the data is usable.
+      migrate: (persisted) => persisted as AppState,
       merge: (persisted, current) => {
         const raw = (persisted as { data?: unknown } | undefined)?.data;
         if (raw === undefined) return current;
         const result = validateData(raw);
         if (result.ok) return { ...current, data: result.data };
-        try {
-          localStorage.setItem(CORRUPT_KEY, JSON.stringify(raw));
-        } catch {
-          /* ignore */
-        }
-        queueMicrotask(() =>
-          useEffectsStore.getState().toast('Saved data was damaged — started a fresh board. A copy was kept.', 'error'),
-        );
+        keepCorruptCopy(JSON.stringify(raw));
         return current;
       },
     },
   ),
 );
+
+// Another window (e.g. the installed PWA and a browser tab) saved: reload so we never overwrite its changes.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === STORAGE_KEY) void useAppStore.persist.rehydrate();
+  });
+}
