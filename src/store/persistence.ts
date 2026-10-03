@@ -54,7 +54,7 @@ const isFrame = (v: unknown): v is Frame | null =>
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
-function pickSettings(s: Obj): Partial<Settings> {
+export function pickSettings(s: Obj): Partial<Settings> {
   const out: Partial<Settings> = {};
   if (isNum(s.sfxVolume)) out.sfxVolume = clamp01(s.sfxVolume);
   if (isNum(s.musicVolume)) out.musicVolume = clamp01(s.musicVolume);
