@@ -7,8 +7,22 @@ import { finalize, moveQuest as moveQuestLogic } from './progress';
 import { createDefaultData } from './defaults';
 import { validateData } from './persistence';
 import { useEffectsStore } from './useEffectsStore';
+import { loadDeviceSettings, saveDeviceSettings } from './deviceSettings';
 
-export const STORAGE_KEY = 'quest-board-v1';
+/** This device's copy of the signed-in user's board (the cloud cache). */
+export const STORAGE_KEY = 'quest-board-cloud-v1';
+
+export interface SyncMeta { dirty: boolean; baseRevision: number; localUpdatedAt: string | null }
+export const INITIAL_SYNC: SyncMeta = { dirty: false, baseRevision: 0, localUpdatedAt: null };
+
+const isSyncMeta = (v: unknown): v is SyncMeta => {
+  const s = v as SyncMeta | null;
+  return typeof s === 'object' && s !== null && typeof s.dirty === 'boolean' &&
+    typeof s.baseRevision === 'number' && s.baseRevision >= 0 &&
+    (s.localUpdatedAt === null || typeof s.localUpdatedAt === 'string');
+};
+
+const freshData = (): AppData => ({ ...createDefaultData(), settings: loadDeviceSettings() });
 export const CORRUPT_KEY = 'quest-board-corrupt-copy';
 
 let saveWarningShown = false;
@@ -80,26 +94,37 @@ export interface AppState {
   resetAvatar: () => void;
   updateSettings: (patch: Partial<Settings>) => void;
   markExported: () => void;
-  snoozeBackup: () => void;
   replaceData: (data: AppData) => void;
+  ownerId: string | null;
+  sync: SyncMeta;
+  beginSession: (ownerId: string, data: AppData, sync: SyncMeta) => void;
+  adoptServerBoard: (data: AppData, revision: number) => void;
+  markSaved: (revision: number, sentUpdatedAt: string) => void;
+  clearLocalBoard: () => void;
 }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => {
       const run = (fn: (data: AppData, now: Date) => Result): Result => {
-        const result = fn(get().data, new Date());
+        const now = new Date();
+        const before = get().data;
+        const result = fn(before, now);
         const effects = useEffectsStore.getState();
         if (result.error) {
           effects.toast(result.error, 'error');
           return result;
         }
-        set({ data: result.data });
+        if (result.data !== before) {
+          set({ data: result.data, sync: { ...get().sync, dirty: true, localUpdatedAt: now.toISOString() } });
+        }
         effects.push(result.events);
         return result;
       };
       return {
-        data: createDefaultData(),
+        data: freshData(),
+        ownerId: null,
+        sync: { ...INITIAL_SYNC },
         addQuest: (columnId, input) => run((d, now) => board.addQuest(d, columnId, input, now)).createdId ?? null,
         updateQuest: (questId, patch) => !run((d, now) => board.updateQuest(d, questId, patch, now)).error,
         deleteQuest: (questId) => void run((d, now) => board.deleteQuest(d, questId, now)),
@@ -114,26 +139,47 @@ export const useAppStore = create<AppState>()(
         deleteLabel: (labelId) => void run((d) => board.deleteLabel(d, labelId)),
         saveAvatar: (frames) => void run((d, now) => board.saveAvatar(d, frames, now)),
         resetAvatar: () => void run((d) => board.resetAvatar(d)),
-        updateSettings: (patch) => set((s) => ({ data: { ...s.data, settings: { ...s.data.settings, ...patch } } })),
+        updateSettings: (patch) => {
+          const settings = { ...get().data.settings, ...patch };
+          saveDeviceSettings(settings);
+          set((s) => ({ data: { ...s.data, settings } }));
+        },
         markExported: () => get().updateSettings({ lastExportAt: new Date().toISOString() }),
-        snoozeBackup: () => get().updateSettings({ backupSnoozedUntil: new Date(Date.now() + 86_400_000).toISOString() }),
-        replaceData: (data) => void run((_, now) => finalize(data, [], now)),
+        replaceData: (data) => void run((current, now) => finalize({ ...data, settings: current.settings }, [], now)),
+        beginSession: (ownerId, data, sync) => set({ ownerId, data: { ...data, settings: get().data.settings }, sync }),
+        adoptServerBoard: (data, revision) =>
+          set({ data: { ...data, settings: get().data.settings }, sync: { dirty: false, baseRevision: revision, localUpdatedAt: null } }),
+        markSaved: (revision, sentUpdatedAt) =>
+          set((s) => ({
+            sync: { dirty: s.sync.localUpdatedAt !== sentUpdatedAt, baseRevision: revision, localUpdatedAt: s.sync.localUpdatedAt },
+          })),
+        clearLocalBoard: () => {
+          set({ ownerId: null, sync: { ...INITIAL_SYNC }, data: { ...createDefaultData(), settings: get().data.settings } });
+          useAppStore.persist.clearStorage();
+        },
       };
     },
     {
       name: STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => safeStorage),
-      partialize: (state) => ({ data: state.data }),
+      partialize: (state) => ({ data: state.data, ownerId: state.ownerId, sync: state.sync }),
       // Accept any stored version; validateData in merge decides whether the data is usable.
       migrate: (persisted) => persisted as AppState,
       merge: (persisted, current) => {
-        const raw = (persisted as { data?: unknown } | undefined)?.data;
-        if (raw === undefined) return current;
-        const result = validateData(raw);
-        if (result.ok) return { ...current, data: result.data };
-        keepCorruptCopy(JSON.stringify(raw));
-        return current;
+        const p = persisted as { data?: unknown; ownerId?: unknown; sync?: unknown } | undefined;
+        if (p?.data === undefined) return current;
+        const result = validateData(p.data);
+        if (!result.ok) {
+          keepCorruptCopy(JSON.stringify(p.data));
+          return current;
+        }
+        return {
+          ...current,
+          data: { ...result.data, settings: loadDeviceSettings() },
+          ownerId: typeof p.ownerId === 'string' ? p.ownerId : null,
+          sync: isSyncMeta(p.sync) ? p.sync : { ...INITIAL_SYNC },
+        };
       },
     },
   ),

@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { EffectsLayer } from './EffectsLayer';
 import { AchievementsPanel } from './AchievementsPanel';
-import { BackupBanner } from './BackupBanner';
 import { useEffectsStore } from '../store/useEffectsStore';
 import { useAppStore } from '../store/useAppStore';
 import { createDefaultData } from '../store/defaults';
@@ -45,15 +43,5 @@ describe('AchievementsPanel', () => {
     expect(screen.getByRole('dialog', { name: 'Achievements 1/12' })).toBeInTheDocument();
     expect(screen.getByText('First Blood').closest('li')).toHaveClass('unlocked');
     expect(screen.getByText('Boss Slayer').closest('li')).toHaveClass('locked');
-  });
-});
-
-describe('BackupBanner', () => {
-  it('appears when a backup is due and can be snoozed', async () => {
-    const data = createDefaultData(new Date(Date.now() - 4 * 86_400_000));
-    useAppStore.setState({ data });
-    render(<BackupBanner />);
-    await userEvent.click(screen.getByRole('button', { name: 'Later' }));
-    expect(screen.queryByRole('button', { name: 'Later' })).not.toBeInTheDocument();
   });
 });

@@ -10,7 +10,6 @@ type Obj = Record<string, unknown>;
 const DAMAGED: ImportResult = { ok: false, error: 'This backup file is damaged or incomplete.' };
 const DIFFICULTIES = ['easy', 'normal', 'hard', 'boss'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const DAY_MS = 86_400_000;
 
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isStr = (v: unknown): v is string => typeof v === 'string';
@@ -114,13 +113,4 @@ export function serialize(data: AppData): string {
 
 export function backupFileName(now: Date): string {
   return `quest-board-backup-${toDateKey(now)}.json`;
-}
-
-export function shouldShowBackupReminder(data: AppData, now: Date): boolean {
-  if (Object.keys(data.quests).length === 0) return false;
-  const { lastExportAt, installedAt, backupSnoozedUntil } = data.settings;
-  const t = now.getTime();
-  if (backupSnoozedUntil && t < Date.parse(backupSnoozedUntil)) return false;
-  if (lastExportAt) return t - Date.parse(lastExportAt) >= 7 * DAY_MS;
-  return t - Date.parse(installedAt) >= 3 * DAY_MS;
 }

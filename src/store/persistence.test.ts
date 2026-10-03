@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { AppData } from '../types';
-import { backupFileName, parseBackup, serialize, shouldShowBackupReminder, validateData } from './persistence';
+import { backupFileName, parseBackup, serialize, validateData } from './persistence';
 import { T0, emptyBoard, withQuest } from '../test/fixtures';
 
-const DAY = 86_400_000;
 const clone = (d: AppData) => JSON.parse(JSON.stringify(d));
 
 describe('parseBackup', () => {
@@ -54,28 +53,4 @@ describe('parseBackup', () => {
 
 describe('backupFileName', () => {
   it('uses the local date', () => expect(backupFileName(T0)).toBe('quest-board-backup-2026-09-29.json'));
-});
-
-describe('shouldShowBackupReminder', () => {
-  const withSettings = (patch: Partial<AppData['settings']>) => {
-    const data = withQuest(emptyBoard(T0), 'To Do', { id: 'q' });
-    return { ...data, settings: { ...data.settings, ...patch } };
-  };
-  it('stays quiet on an empty board', () => {
-    expect(shouldShowBackupReminder(emptyBoard(T0), new Date(T0.getTime() + 30 * DAY))).toBe(false);
-  });
-  it('asks after 3 days if never exported', () => {
-    expect(shouldShowBackupReminder(withSettings({}), new Date(T0.getTime() + 2 * DAY))).toBe(false);
-    expect(shouldShowBackupReminder(withSettings({}), new Date(T0.getTime() + 3 * DAY))).toBe(true);
-  });
-  it('asks 7 days after the last export', () => {
-    const data = withSettings({ lastExportAt: T0.toISOString() });
-    expect(shouldShowBackupReminder(data, new Date(T0.getTime() + 6 * DAY))).toBe(false);
-    expect(shouldShowBackupReminder(data, new Date(T0.getTime() + 7 * DAY))).toBe(true);
-  });
-  it('respects snoozing', () => {
-    const data = withSettings({ backupSnoozedUntil: new Date(T0.getTime() + 5 * DAY).toISOString() });
-    expect(shouldShowBackupReminder(data, new Date(T0.getTime() + 4 * DAY))).toBe(false);
-    expect(shouldShowBackupReminder(data, new Date(T0.getTime() + 6 * DAY))).toBe(true);
-  });
 });
