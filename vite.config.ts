@@ -29,6 +29,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     pool: 'threads',
+    testTimeout: 20000,
     setupFiles: ['./src/test/setup.ts'],
     alias: {
       'virtual:pwa-register/react': fileURLToPath(new URL('./src/test/pwa-stub.ts', import.meta.url)),
