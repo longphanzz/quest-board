@@ -49,7 +49,9 @@ Cập nhật: 2026-10-03. File này ghi lại toàn bộ bối cảnh để ti�
 
 - Thầy của người dùng hướng dẫn dùng Supabase làm backend. Người dùng chọn **C: học cách Supabase hoạt động**, làm từng bước kèm giải thích để tự làm lại được.
 - **Connector Supabase đã kết nối** (công cụ: list_projects, list_tables, execute_sql, apply_migration, get_advisors, generate_typescript_types, get_publishable_keys, search_docs…).
-- **Plugin Supabase chính thức** (supabase-community, skills `supabase` + `supabase-postgres-best-practices` + MCP): đã hiện thẻ cài, **chờ người dùng bấm cài và báo "xong"** → kiểm tra bằng ListPlugins.
+- **Plugin Supabase chính thức**: ListPlugins ngày 2026-10-03 chưa thấy (chưa cài). Không bắt buộc — connector đã đủ dùng.
+- **Project đã có**: `Kanban - Quest board`, id/ref `nbrrjkwlqwdxojnnpfvp`, region us-east-1, Postgres 17, tạo 2026-10-03. Schema `public` còn trống; `auth.users` 0 người dùng.
+- **Bước 1 đã giải thích xong** (2026-10-03). Tiếp theo: Bước 2.
 - Quy tắc an toàn: không bao giờ xin/nhận `service_role` key hay mật khẩu trong chat; URL project + anon/publishable key thì được. Hỏi trước mọi thao tác thay đổi dữ liệu hoặc tốn phí (tạo project, migration…).
 
 ### Lộ trình học (6 bước)
