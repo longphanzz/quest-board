@@ -4,3 +4,4 @@ dev-dist/
 .vite/
 *.log
 .superpowers/
+.env*.local
