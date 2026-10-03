@@ -116,7 +116,10 @@ export const useAppStore = create<AppState>()(
           return result;
         }
         if (result.data !== before) {
-          set({ data: result.data, sync: { ...get().sync, dirty: true, localUpdatedAt: now.toISOString() } });
+          // Strictly increasing, so an edit in the same millisecond as a save is never mistaken for the saved one.
+          const prev = get().sync.localUpdatedAt;
+          const stamp = prev && Date.parse(prev) >= now.getTime() ? new Date(Date.parse(prev) + 1) : now;
+          set({ data: result.data, sync: { ...get().sync, dirty: true, localUpdatedAt: stamp.toISOString() } });
         }
         effects.push(result.events);
         return result;

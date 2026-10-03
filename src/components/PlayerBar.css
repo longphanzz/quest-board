@@ -30,3 +30,5 @@
   .player-stats { order: 3; flex-basis: 100%; }
 }
 .player-date { font-family: var(--font-title); font-size: 11px; color: var(--ink-dim); white-space: nowrap; }
+
+.sync-status { display: inline-flex; align-items: center; font-size: 16px; padding: 0 4px; }

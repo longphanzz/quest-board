@@ -8,6 +8,7 @@ import { AchievementsPanel } from './components/AchievementsPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { PixelEditor } from './components/PixelEditor';
 import { ReloadPrompt } from './components/ReloadPrompt';
+import { CloudGate } from './components/CloudGate';
 
 export default function App() {
   const theme = useAppStore((s) => s.data.settings.theme);
@@ -20,15 +21,19 @@ export default function App() {
   }, [theme]);
 
   return (
-    <div className="app">
-      <h1 className="sr-only">Quest Board</h1>
-      <PlayerBar onOpen={setPanel} />
-      <Board />
-      <EffectsLayer />
-      {panel === 'achievements' && <AchievementsPanel onClose={close} />}
-      {panel === 'settings' && <SettingsPanel onClose={close} onEditAvatar={() => setPanel('editor')} />}
-      {panel === 'editor' && <PixelEditor onClose={close} />}
+    <>
+      <CloudGate>
+        <div className="app">
+          <h1 className="sr-only">Quest Board</h1>
+          <PlayerBar onOpen={setPanel} />
+          <Board />
+          <EffectsLayer />
+          {panel === 'achievements' && <AchievementsPanel onClose={close} />}
+          {panel === 'settings' && <SettingsPanel onClose={close} onEditAvatar={() => setPanel('editor')} />}
+          {panel === 'editor' && <PixelEditor onClose={close} />}
+        </div>
+      </CloudGate>
       <ReloadPrompt />
-    </div>
+    </>
   );
 }

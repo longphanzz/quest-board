@@ -3,6 +3,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useEffectsStore } from '../store/useEffectsStore';
 import { downloadBackup, readBackupFile } from '../store/backup';
 import { playSfx } from '../audio/sfx';
+import { signOut, useAuthStore } from '../cloud/auth';
 import { Modal } from './Modal';
 
 interface Props { onClose: () => void; onEditAvatar: () => void; }
@@ -12,6 +13,14 @@ export function SettingsPanel({ onClose, onEditAvatar }: Props) {
   const updateSettings = useAppStore((s) => s.updateSettings);
   const replaceData = useAppStore((s) => s.replaceData);
   const fileRef = useRef<HTMLInputElement>(null);
+  const email = useAuthStore((s) => s.user?.email ?? '');
+  const dirty = useAppStore((s) => s.sync.dirty);
+
+  const onSignOut = () => {
+    if (dirty && !window.confirm('You have unsynced changes. Signing out will lose them.')) return;
+    onClose();
+    void signOut();
+  };
 
   const onImport = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -76,6 +85,14 @@ export function SettingsPanel({ onClose, onEditAvatar }: Props) {
           <button className="pixel-btn" onClick={() => fileRef.current?.click()}>📂 Import</button>
         </div>
         <input ref={fileRef} data-testid="import-input" type="file" accept="application/json,.json" hidden onChange={onImport} />
+      </section>
+
+      <section className="settings-section">
+        <h3>Account</h3>
+        <p className="settings-note">Signed in as {email}</p>
+        <div className="row">
+          <button className="pixel-btn danger" onClick={onSignOut}>Sign out</button>
+        </div>
       </section>
     </Modal>
   );

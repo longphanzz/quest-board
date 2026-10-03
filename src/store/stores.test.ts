@@ -168,3 +168,19 @@ describe('cloud cache', () => {
     expect(app().sync.dirty).toBe(true);
   });
 });
+
+describe('cloud cache timestamps', () => {
+  it('gives two edits in the same millisecond different change stamps', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-03T10:00:00.000Z'));
+    try {
+      app().addColumn('A');
+      const sent = app().sync.localUpdatedAt!;
+      app().addColumn('B');
+      app().markSaved(1, sent);
+      expect(app().sync.dirty).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

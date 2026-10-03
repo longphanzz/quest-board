@@ -6,9 +6,15 @@ import { useAppStore } from '../store/useAppStore';
 import { useEffectsStore } from '../store/useEffectsStore';
 import { createDefaultData } from '../store/defaults';
 import { serialize } from '../store/persistence';
+const { signOut } = vi.hoisted(() => ({ signOut: vi.fn() }));
+vi.mock('../cloud/auth', async () => {
+  const { create } = await import('zustand');
+  return { useAuthStore: create(() => ({ status: 'signedIn', user: { id: 'u1', email: 'hero@example.com' }, recovery: false })), signOut };
+});
+
 
 beforeEach(() => {
-  useAppStore.setState({ data: createDefaultData() });
+  useAppStore.setState({ data: createDefaultData(), sync: { dirty: false, baseRevision: 0, localUpdatedAt: null } });
   useEffectsStore.setState({ items: [], mood: null });
 });
 afterEach(() => vi.restoreAllMocks());
@@ -44,5 +50,24 @@ describe('SettingsPanel', () => {
       expect(useEffectsStore.getState().items.at(-1)?.event).toEqual({ type: 'toast', message: 'This file is not valid JSON.', tone: 'error' }),
     );
     expect(useAppStore.getState().data).toBe(before);
+  });
+});
+
+describe('SettingsPanel account', () => {
+  it('shows the account and signs out directly when everything is synced', async () => {
+    render(<SettingsPanel onClose={() => {}} onEditAvatar={() => {}} />);
+    expect(screen.getByText('Signed in as hero@example.com')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+    expect(signOut).toHaveBeenCalled();
+  });
+
+  it('warns before signing out with unsynced changes', async () => {
+    signOut.mockClear();
+    useAppStore.setState({ sync: { dirty: true, baseRevision: 0, localUpdatedAt: 'x' } });
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<SettingsPanel onClose={() => {}} onEditAvatar={() => {}} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+    expect(confirm).toHaveBeenCalledWith('You have unsynced changes. Signing out will lose them.');
+    expect(signOut).not.toHaveBeenCalled();
   });
 });
