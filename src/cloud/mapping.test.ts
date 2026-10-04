@@ -63,3 +63,32 @@ describe('fromCloudBoard', () => {
     expect(back.ok && back.data.columns.find((c) => c.id === columnId(data, 'To Do'))?.questIds).toEqual(['q1', 'q3']);
   });
 });
+
+describe('toCloudBoard review I-3: values the database would reject', () => {
+  it('dedupes labels, clamps colors, rounds numbers and repairs dates', () => {
+    const data = richBoard();
+    data.labels = [...data.labels, { id: 'l1', name: 'Dup', color: '' }, { id: 'l3', name: 'Long', color: 'x'.repeat(40) }];
+    data.quests.q1 = { ...data.quests.q1, deadline: '2026-02-30', createdAt: 'yesterday' };
+    data.quests.q2 = { ...data.quests.q2, completion: { ...data.quests.q2.completion!, xp: 12.6, at: 'nope' } };
+    data.player = {
+      ...data.player, totalXp: 1.5, streak: 2.2, lastActiveDate: 'garbage',
+      unlockedAchievements: { 'first-blood': 'bad', ok: '2026-09-30T08:15:00Z' },
+    };
+    const cloud = toCloudBoard(data);
+    expect(cloud.labels.map((l) => l.id)).toEqual(['l1', 'l2', 'l3']);
+    expect(cloud.labels[2].color.length).toBeLessThanOrEqual(32);
+    expect(cloud.quests.q1.deadline).toBeNull();
+    expect(cloud.quests.q1.createdAt).toBe(new Date(0).toISOString());
+    expect(cloud.quests.q2.completion).toMatchObject({ xp: 13, at: data.quests.q2.createdAt });
+    expect(cloud.player).toMatchObject({ totalXp: 2, streak: 2, lastActiveDate: null });
+    expect(cloud.player.unlockedAchievements).toEqual({ 'first-blood': new Date(0).toISOString(), ok: '2026-09-30T08:15:00.000Z' });
+  });
+
+  it('never cuts an emoji in half when shortening a title', () => {
+    const data = richBoard();
+    data.quests.q1 = { ...data.quests.q1, title: 'a'.repeat(119) + '🐉🐉' };
+    const title = toCloudBoard(data).quests.q1.title;
+    expect(title).toBe('a'.repeat(119) + '🐉');
+    expect(title.isWellFormed()).toBe(true);
+  });
+});
