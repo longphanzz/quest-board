@@ -50,8 +50,15 @@ Cập nhật: 2026-10-03. File này ghi lại toàn bộ bối cảnh để ti�
 - Thầy của người dùng hướng dẫn dùng Supabase làm backend. Người dùng chọn **C: học cách Supabase hoạt động**, làm từng bước kèm giải thích để tự làm lại được.
 - **Connector Supabase đã kết nối** (công cụ: list_projects, list_tables, execute_sql, apply_migration, get_advisors, generate_typescript_types, get_publishable_keys, search_docs…).
 - **Plugin Supabase chính thức**: ListPlugins ngày 2026-10-03 chưa thấy (chưa cài). Không bắt buộc — connector đã đủ dùng.
-- **Project đã có**: `Kanban - Quest board`, id/ref `nbrrjkwlqwdxojnnpfvp`, region us-east-1, Postgres 17, tạo 2026-10-03. Schema `public` còn trống; `auth.users` 0 người dùng.
-- **Bước 1 đã giải thích xong** (2026-10-03). Tiếp theo: Bước 2.
+- **Project**: `Kanban - Quest board`, id/ref `nbrrjkwlqwdxojnnpfvp`, region us-east-1, Postgres 17.
+- **Backend Supabase ĐÃ LÀM XONG (2026-10-04)** trên nhánh `feat/supabase-backend`. Spec `docs/superpowers/specs/2026-10-03-supabase-backend-design.md`, plan `docs/superpowers/plans/2026-10-03-supabase-backend.md`.
+  - DB: 2 migration đã áp lên project thật (`supabase/migrations/`): 7 bảng + RLS "mỗi người chỉ dòng của mình" + hàm `load_board()` / `save_board(p_board, p_base_revision, p_client_updated_at)`. Kiểm tra `supabase/tests/rls_check.sql` → `RLS_CHECK_OK` (luôn rollback). Anon gọi REST/RPC → 401.
+  - App: `src/cloud/` (client, mapping, api, syncEngine, auth, firstSync, useCloudSync, useSyncStore); màn hình AuthScreen / ResetPasswordScreen / FirstSyncPrompt / CloudGate / SyncStatus; nút Sign out trong Settings. BackupBanner đã bỏ.
+  - localStorage: `quest-board-cloud-v1` (cache + ownerId + sync), `quest-board-device-v1` (cài đặt máy), `quest-board-v1` (board cũ, chỉ để hỏi Upload lần đầu) → sau khi chọn được cất sang `quest-board-v1-backup` (không bao giờ xoá).
+  - Key: `.env.local` (git-ignored) chứa `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY`; mẫu ở `.env.example`.
+  - Test: 247/247; vitest `testTimeout: 20000` vì máy chậm khi bận. Nếu vitest báo "Timeout waiting for worker" → máy thiếu RAM, tắt bớt (dev server) rồi chạy lại.
+  - Còn chờ người dùng: chỉnh Site URL trên dashboard, tự đăng ký tài khoản, thử Upload/2 tab/offline/quên mật khẩu. 6 minor còn để sau (xem ledger `.superpowers/sdd/2026-10-03-supabase-backend/progress.md`, mục Final).
+- Lộ trình học: bước 1–6 đã làm (bước 2 key, 3 bảng, 4 RLS, 5 đăng nhập, 6 đồng bộ) — có thể ôn lại từng phần cho người dùng nếu họ muốn hiểu sâu.
 - Quy tắc an toàn: không bao giờ xin/nhận `service_role` key hay mật khẩu trong chat; URL project + anon/publishable key thì được. Hỏi trước mọi thao tác thay đổi dữ liệu hoặc tốn phí (tạo project, migration…).
 
 ### Lộ trình học (6 bước)
