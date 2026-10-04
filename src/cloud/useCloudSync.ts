@@ -15,11 +15,14 @@ export function useCloudSync(userId: string): void {
       getLocal: () => useAppStore.getState(),
       adopt: (board, revision) => {
         const store = useAppStore.getState();
+        if (store.ownerId !== userId) return true; // the cache now belongs to someone else: drop the response
         const result = fromCloudBoard(board, store.data.settings);
         if (result.ok) store.adoptServerBoard(result.data, revision);
         return result.ok;
       },
-      markSaved: (revision, sent) => useAppStore.getState().markSaved(revision, sent),
+      markSaved: (revision, sent) => {
+        if (useAppStore.getState().ownerId === userId) useAppStore.getState().markSaved(revision, sent);
+      },
       setStatus: (status) => useSyncStore.setState({ status }),
       toast: (message) => useEffectsStore.getState().toast(message),
       setTimer: (fn, ms) => window.setTimeout(fn, ms),

@@ -59,9 +59,14 @@ export function createSyncEngine(deps: SyncDeps): SyncEngine {
     const sentAt = meta.localUpdatedAt ?? new Date(0).toISOString();
     deps.setStatus('saving');
     const result = await deps.save(toCloudBoard(data), meta.baseRevision, sentAt);
+    if (stopped) return; // signed out or switched user while the request was in flight
     attempt = 0;
     if (result.status === 'saved') {
       deps.markSaved(result.revision, sentAt);
+    } else if (deps.getLocal().sync.localUpdatedAt !== sentAt) {
+      // Edited during the request: the newer edit pushes again and wins last-write-wins.
+      schedule(DEBOUNCE_MS);
+      return;
     } else {
       if (!deps.adopt(result.board, result.revision)) {
         deps.setStatus('error');
@@ -74,6 +79,7 @@ export function createSyncEngine(deps: SyncDeps): SyncEngine {
 
   async function pull(): Promise<void> {
     const remote = await deps.load();
+    if (stopped) return;
     attempt = 0;
     const local = deps.getLocal().sync;
     if (local.dirty) return push(); // edited while the pull was in flight

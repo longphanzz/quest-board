@@ -137,4 +137,37 @@ describe('sync engine', () => {
     s.engine.notifyChange();
     expect(s.timers).toHaveLength(0);
   });
+
+  it('review I-1: does not adopt a stale board over an edit made during the save', async () => {
+    let release!: (v: unknown) => void;
+    (s.deps.save as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise((r) => { release = r; }));
+    s.edit('t1');
+    const pushing = s.engine.sync();
+    s.edit('t2');
+    release({ status: 'stale', revision: 7, clientUpdatedAt: 'x', board: {} });
+    await pushing;
+    expect(s.deps.adopt).not.toHaveBeenCalled();
+    expect(s.state.sync).toMatchObject({ dirty: true, localUpdatedAt: 't2' });
+    expect(s.timers.at(-1)?.ms).toBe(DEBOUNCE_MS);
+  });
+
+  it('review I-2: ignores save and pull responses that arrive after stop', async () => {
+    let release!: (v: unknown) => void;
+    (s.deps.save as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise((r) => { release = r; }));
+    s.edit('t1');
+    const pushing = s.engine.sync();
+    s.engine.stop();
+    release({ status: 'saved', revision: 3 });
+    await pushing;
+    expect(s.deps.markSaved).not.toHaveBeenCalled();
+
+    const t = setup();
+    let releaseLoad!: (v: unknown) => void;
+    (t.deps.load as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise((r) => { releaseLoad = r; }));
+    const pulling = t.engine.sync();
+    t.engine.stop();
+    releaseLoad({ revision: 9, clientUpdatedAt: 'x', board: {} });
+    await pulling;
+    expect(t.deps.adopt).not.toHaveBeenCalled();
+  });
 });
