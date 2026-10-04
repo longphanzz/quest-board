@@ -21,8 +21,13 @@ export function readLegacyBoard(): AppData | null {
   }
 }
 
+/** Where the pre-cloud board is archived, so no first-sync choice can destroy it. */
+export const LEGACY_BACKUP_KEY = 'quest-board-v1-backup';
+
 export function clearLegacyBoard(): void {
   try {
+    const raw = localStorage.getItem(LEGACY_KEY);
+    if (raw !== null) localStorage.setItem(LEGACY_BACKUP_KEY, raw);
     localStorage.removeItem(LEGACY_KEY);
   } catch {
     /* ignore */
