@@ -10,3 +10,6 @@
 .auth-error { color: var(--danger); margin: 0; }
 .auth-note { color: var(--good); margin: 0; }
 .auth-link { background: none; border: none; color: var(--ink-dim); text-decoration: underline; cursor: pointer; font: inherit; justify-self: center; }
+.password-field { display: grid; gap: 4px; font-size: 20px; }
+.password-row { display: flex; gap: 6px; align-items: stretch; }
+.password-row input { flex: 1; font: inherit; font-size: 20px; padding: 6px 8px; background: var(--bg); color: var(--ink); border: 3px solid var(--border); min-width: 0; }

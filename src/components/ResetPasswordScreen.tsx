@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { updatePassword, MIN_PASSWORD } from '../cloud/auth';
+import { PasswordInput } from './PasswordInput';
 import './Auth.css';
 
 export function ResetPasswordScreen() {
@@ -23,14 +24,8 @@ export function ResetPasswordScreen() {
     <main className="auth-screen">
       <form className="auth-card auth-form pixel-box" onSubmit={submit}>
         <h1 className="auth-title">NEW PASSWORD</h1>
-        <label>
-          New password
-          <input type="password" autoComplete="new-password" required minLength={MIN_PASSWORD} value={password} onChange={(e) => setPassword(e.target.value)} />
-        </label>
-        <label>
-          Repeat new password
-          <input type="password" autoComplete="new-password" required minLength={MIN_PASSWORD} value={repeat} onChange={(e) => setRepeat(e.target.value)} />
-        </label>
+        <PasswordInput label="New password" value={password} onChange={setPassword} autoComplete="new-password" minLength={MIN_PASSWORD} />
+        <PasswordInput label="Repeat new password" value={repeat} onChange={setRepeat} autoComplete="new-password" minLength={MIN_PASSWORD} />
         {error && <p className="auth-error" role="alert">{error}</p>}
         <button type="submit" className="pixel-btn primary" disabled={busy}>Save new password</button>
       </form>

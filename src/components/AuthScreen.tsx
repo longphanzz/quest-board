@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { requestPasswordReset, signIn, signUp, MIN_PASSWORD } from '../cloud/auth';
+import { PasswordInput } from './PasswordInput';
 import './Auth.css';
 
 type Mode = 'signIn' | 'signUp' | 'forgot';
@@ -57,12 +58,9 @@ export function AuthScreen() {
             <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </label>
           {mode !== 'forgot' && (
-            <label>
-              Password
-              <input type="password" required minLength={mode === 'signUp' ? MIN_PASSWORD : undefined}
-                autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
-                value={password} onChange={(e) => setPassword(e.target.value)} />
-            </label>
+            <PasswordInput label="Password" value={password} onChange={setPassword}
+              minLength={mode === 'signUp' ? MIN_PASSWORD : undefined}
+              autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'} />
           )}
           {error && <p className="auth-error" role="alert">{error}</p>}
           {note && <p className="auth-note" role="status">{note}</p>}
