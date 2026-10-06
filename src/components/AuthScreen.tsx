@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { requestPasswordReset, signIn, signUp, MIN_PASSWORD } from '../cloud/auth';
+import { requestPasswordReset, signIn, signInWithGoogle, signUp, MIN_PASSWORD } from '../cloud/auth';
 import { PasswordInput } from './PasswordInput';
 import './Auth.css';
 
@@ -39,6 +39,15 @@ export function AuthScreen() {
     setBusy(false);
   };
 
+  const google = async () => {
+    setBusy(true);
+    setError(null);
+    setNote(null);
+    const err = await signInWithGoogle(); // on success the browser leaves for Google
+    if (err) setError(err);
+    setBusy(false);
+  };
+
   const action = mode === 'signIn' ? 'Sign in' : mode === 'signUp' ? 'Create account' : 'Send reset link';
 
   return (
@@ -66,6 +75,14 @@ export function AuthScreen() {
           {note && <p className="auth-note" role="status">{note}</p>}
           <button type="submit" className="pixel-btn primary" disabled={busy}>{action}</button>
         </form>
+        {mode !== 'forgot' && (
+          <>
+            <p className="auth-or">— or —</p>
+            <button type="button" className="pixel-btn google-btn" disabled={busy} onClick={google}>
+              <span aria-hidden="true">G</span> Continue with Google
+            </button>
+          </>
+        )}
         {mode === 'signIn' && <button type="button" className="auth-link" onClick={() => switchTo('forgot')}>Forgot password?</button>}
         {mode === 'forgot' && <button type="button" className="auth-link" onClick={() => switchTo('signIn')}>Back to sign in</button>}
       </div>

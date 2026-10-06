@@ -6,7 +6,8 @@ const signIn = vi.fn();
 const signUp = vi.fn();
 const requestPasswordReset = vi.fn();
 const updatePassword = vi.fn();
-vi.mock('../cloud/auth', () => ({ signIn, signUp, requestPasswordReset, updatePassword, MIN_PASSWORD: 8 }));
+const signInWithGoogle = vi.fn();
+vi.mock('../cloud/auth', () => ({ signIn, signUp, requestPasswordReset, updatePassword, signInWithGoogle, MIN_PASSWORD: 8 }));
 
 const { AuthScreen } = await import('./AuthScreen');
 const { ResetPasswordScreen } = await import('./ResetPasswordScreen');
@@ -44,6 +45,14 @@ describe('AuthScreen', () => {
     await fill('a@b.co');
     await userEvent.click(screen.getByRole('button', { name: 'Send reset link' }));
     expect(await screen.findByText('If that email has an account, a reset link is on its way')).toBeInTheDocument();
+  });
+
+  it('continues with Google and shows why it could not start', async () => {
+    signInWithGoogle.mockResolvedValue('Google sign-in is not set up yet');
+    render(<AuthScreen />);
+    await userEvent.click(screen.getByRole('button', { name: 'Continue with Google' }));
+    expect(signInWithGoogle).toHaveBeenCalled();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Google sign-in is not set up yet');
   });
 });
 

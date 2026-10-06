@@ -4,6 +4,7 @@ import { useEffectsStore } from '../store/useEffectsStore';
 import { downloadBackup, readBackupFile } from '../store/backup';
 import { playSfx } from '../audio/sfx';
 import { signOut, useAuthStore } from '../cloud/auth';
+import { SignInMethods } from './SignInMethods';
 import { Modal } from './Modal';
 
 interface Props { onClose: () => void; onEditAvatar: () => void; }
@@ -90,6 +91,7 @@ export function SettingsPanel({ onClose, onEditAvatar }: Props) {
       <section className="settings-section">
         <h3>Account</h3>
         <p className="settings-note">Signed in as {email}</p>
+        <SignInMethods />
         <div className="row">
           <button className="pixel-btn danger" onClick={onSignOut}>Sign out</button>
         </div>

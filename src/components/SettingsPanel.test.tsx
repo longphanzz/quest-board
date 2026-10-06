@@ -6,10 +6,15 @@ import { useAppStore } from '../store/useAppStore';
 import { useEffectsStore } from '../store/useEffectsStore';
 import { createDefaultData } from '../store/defaults';
 import { serialize } from '../store/persistence';
-const { signOut } = vi.hoisted(() => ({ signOut: vi.fn() }));
+const { signOut, listSignInMethods, linkGoogle, unlinkGoogle } = vi.hoisted(() => ({
+  signOut: vi.fn(),
+  listSignInMethods: vi.fn(async (): Promise<unknown> => [{ provider: 'email', email: 'hero@example.com' }]),
+  linkGoogle: vi.fn(async (): Promise<string | null> => null),
+  unlinkGoogle: vi.fn(async (): Promise<string | null> => null),
+}));
 vi.mock('../cloud/auth', async () => {
   const { create } = await import('zustand');
-  return { useAuthStore: create(() => ({ status: 'signedIn', user: { id: 'u1', email: 'hero@example.com' }, recovery: false })), signOut };
+  return { useAuthStore: create(() => ({ status: 'signedIn', user: { id: 'u1', email: 'hero@example.com' }, recovery: false })), signOut, listSignInMethods, linkGoogle, unlinkGoogle };
 });
 
 
@@ -69,5 +74,34 @@ describe('SettingsPanel account', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
     expect(confirm).toHaveBeenCalledWith('You have unsynced changes. Signing out will lose them.');
     expect(signOut).not.toHaveBeenCalled();
+  });
+});
+
+describe('SettingsPanel sign-in methods', () => {
+  it('offers to link Google and hides Unlink when email is the only method', async () => {
+    render(<SettingsPanel onClose={() => {}} onEditAvatar={() => {}} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Link Google account' }));
+    expect(linkGoogle).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Unlink Google' })).not.toBeInTheDocument();
+  });
+
+  it('shows the linked Google email and unlinks after confirmation', async () => {
+    listSignInMethods.mockResolvedValueOnce([
+      { provider: 'email', email: 'hero@example.com' },
+      { provider: 'google', email: 'hero@gmail.com' },
+    ]).mockResolvedValueOnce([{ provider: 'email', email: 'hero@example.com' }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<SettingsPanel onClose={() => {}} onEditAvatar={() => {}} />);
+    expect(await screen.findByText(/hero@gmail\.com/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Unlink Google' }));
+    expect(unlinkGoogle).toHaveBeenCalled();
+    expect(await screen.findByRole('button', { name: 'Link Google account' })).toBeInTheDocument();
+  });
+
+  it('shows linking errors', async () => {
+    linkGoogle.mockResolvedValueOnce('Account linking is turned off in Supabase settings');
+    render(<SettingsPanel onClose={() => {}} onEditAvatar={() => {}} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Link Google account' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Account linking is turned off in Supabase settings');
   });
 });

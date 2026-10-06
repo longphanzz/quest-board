@@ -3,13 +3,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const auth = {
   signUp: vi.fn(), signInWithPassword: vi.fn(), resetPasswordForEmail: vi.fn(),
   updateUser: vi.fn(), signOut: vi.fn(), onAuthStateChange: vi.fn(),
+  signInWithOAuth: vi.fn(), linkIdentity: vi.fn(), unlinkIdentity: vi.fn(), getUserIdentities: vi.fn(),
 };
-vi.mock('./client', () => ({ getSupabase: () => ({ auth }) }));
+vi.mock('./client', () => ({
+  getSupabase: () => ({ auth }),
+  getSupabaseEnv: () => ({ url: 'https://x.supabase.co', key: 'pk' }),
+}));
 
 const mod = await import('./auth');
 const { useAppStore, INITIAL_SYNC } = await import('../store/useAppStore');
 
-afterEach(() => Object.values(auth).forEach((f) => f.mockReset()));
+afterEach(() => {
+  Object.values(auth).forEach((f) => f.mockReset());
+  vi.unstubAllGlobals();
+});
 
 describe('authErrorMessage', () => {
   it.each([
@@ -62,5 +69,60 @@ describe('auth actions', () => {
     expect(useAppStore.getState().ownerId).toBeNull();
     expect(useAppStore.getState().sync).toEqual(INITIAL_SYNC);
     expect(mod.useAuthStore.getState().status).toBe('signedOut');
+  });
+});
+
+const googleEnabled = (on: boolean) =>
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ external: { google: on } }) }));
+
+describe('Google sign-in and linking', () => {
+  it('explains when Google is not set up instead of redirecting to an error page', async () => {
+    googleEnabled(false);
+    await expect(mod.signInWithGoogle()).resolves.toBe('Google sign-in is not set up yet');
+    await expect(mod.linkGoogle()).resolves.toBe('Google sign-in is not set up yet');
+    expect(auth.signInWithOAuth).not.toHaveBeenCalled();
+    expect(auth.linkIdentity).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledWith('https://x.supabase.co/auth/v1/settings', { headers: { apikey: 'pk' } });
+  });
+
+  it('starts Google sign-in and linking with a redirect back to the app', async () => {
+    googleEnabled(true);
+    auth.signInWithOAuth.mockResolvedValue({ data: {}, error: null });
+    auth.linkIdentity.mockResolvedValue({ data: {}, error: null });
+    await expect(mod.signInWithGoogle()).resolves.toBeNull();
+    await expect(mod.linkGoogle()).resolves.toBeNull();
+    const options = { provider: 'google', options: { redirectTo: window.location.origin } };
+    expect(auth.signInWithOAuth).toHaveBeenCalledWith(options);
+    expect(auth.linkIdentity).toHaveBeenCalledWith(options);
+  });
+
+  it.each([
+    [{ code: 'identity_already_exists' }, 'That Google account already belongs to another user'],
+    [{ code: 'manual_linking_disabled' }, 'Account linking is turned off in Supabase settings'],
+    [{ code: 'single_identity_not_deletable' }, 'Add another way to sign in before unlinking this one'],
+  ])('maps linking error %o', (error, message) => {
+    expect(mod.authErrorMessage(error)).toBe(message);
+  });
+
+  it('lists sign-in methods with their emails', async () => {
+    auth.getUserIdentities.mockResolvedValue({
+      data: { identities: [
+        { provider: 'email', identity_data: { email: 'a@b.co' } },
+        { provider: 'google', identity_data: { email: 'hero@gmail.com' } },
+      ] },
+      error: null,
+    });
+    await expect(mod.listSignInMethods()).resolves.toEqual([
+      { provider: 'email', email: 'a@b.co' },
+      { provider: 'google', email: 'hero@gmail.com' },
+    ]);
+  });
+
+  it('unlinks the Google identity', async () => {
+    const google = { provider: 'google', identity_id: 'g1', identity_data: {} };
+    auth.getUserIdentities.mockResolvedValue({ data: { identities: [{ provider: 'email' }, google] }, error: null });
+    auth.unlinkIdentity.mockResolvedValue({ data: {}, error: null });
+    await expect(mod.unlinkGoogle()).resolves.toBeNull();
+    expect(auth.unlinkIdentity).toHaveBeenCalledWith(google);
   });
 });

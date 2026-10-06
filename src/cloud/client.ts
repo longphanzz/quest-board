@@ -7,6 +7,11 @@ const env = () => ({
   key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined,
 });
 
+export function getSupabaseEnv(): { url: string; key: string } {
+  const { url, key } = env();
+  return { url: url ?? '', key: key ?? '' };
+}
+
 export function isSupabaseConfigured(): boolean {
   const { url, key } = env();
   return Boolean(url && key);
