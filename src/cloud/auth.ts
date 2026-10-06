@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getSupabase, getSupabaseEnv } from './client';
 import { useAppStore } from '../store/useAppStore';
+import { stashUnsynced } from './firstSync';
 
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
 export interface AuthUser { id: string; email: string }
@@ -75,6 +76,8 @@ export async function signOut(): Promise<void> {
   } catch {
     /* the local session is removed regardless */
   }
+  const { ownerId, data, sync } = useAppStore.getState();
+  if (ownerId && sync.dirty) stashUnsynced(ownerId, data, sync);
   useAppStore.getState().clearLocalBoard();
   useAuthStore.setState({ status: 'signedOut', user: null, recovery: false });
 }

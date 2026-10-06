@@ -23,6 +23,30 @@ beforeEach(() => useAppStore.setState({ data: createDefaultData(), ownerId: null
 afterEach(() => loadBoard.mockReset());
 
 describe('FirstSyncPrompt', () => {
+  it("restores this account's unsynced changes without asking or going online", async () => {
+    const { stashUnsynced } = await import('../cloud/firstSync');
+    const d = createDefaultData();
+    d.player.totalXp = 55;
+    stashUnsynced('u1', d, { dirty: true, baseRevision: 3, localUpdatedAt: '2026-10-06T01:00:00.000Z' });
+    render(<FirstSyncPrompt userId="u1" />);
+    await waitFor(() => expect(app().ownerId).toBe('u1'));
+    expect(app().data.player.totalXp).toBe(55);
+    expect(app().sync).toEqual({ dirty: true, baseRevision: 3, localUpdatedAt: '2026-10-06T01:00:00.000Z' });
+    expect(loadBoard).not.toHaveBeenCalled();
+  });
+
+  it("sets aside another account's unsynced changes before loading this one", async () => {
+    const { takeUnsynced } = await import('../cloud/firstSync');
+    const d = createDefaultData();
+    d.player.totalXp = 66;
+    useAppStore.setState({ data: d, ownerId: 'other', sync: { dirty: true, baseRevision: 1, localUpdatedAt: 'x' } });
+    loadBoard.mockResolvedValue(null);
+    render(<FirstSyncPrompt userId="u1" />);
+    await waitFor(() => expect(app().ownerId).toBe('u1'));
+    expect(app().data.player.totalXp).toBe(0);
+    expect(takeUnsynced('other')?.data.player.totalXp).toBe(66);
+  });
+
   it('uploads the local board to an empty account', async () => {
     legacyBoard();
     loadBoard.mockResolvedValue(null);

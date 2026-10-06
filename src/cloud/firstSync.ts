@@ -33,3 +33,31 @@ export function clearLegacyBoard(): void {
     /* ignore */
   }
 }
+
+type Sync = { dirty: boolean; baseRevision: number; localUpdatedAt: string | null };
+const stashKey = (ownerId: string) => `quest-board-unsynced:${ownerId}`;
+
+/** Sets aside a board whose last edits never reached the cloud, so another sign-in on this device cannot wipe them. */
+export function stashUnsynced(ownerId: string, data: AppData, sync: Sync): void {
+  try {
+    localStorage.setItem(stashKey(ownerId), JSON.stringify({ data, sync }));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Hands a stashed board back to its owner once, so the next sync uploads it as usual. */
+export function takeUnsynced(ownerId: string): { data: AppData; sync: Sync } | null {
+  try {
+    const raw = localStorage.getItem(stashKey(ownerId));
+    if (raw === null) return null;
+    localStorage.removeItem(stashKey(ownerId));
+    const parsed = JSON.parse(raw) as { data?: unknown; sync?: Partial<Sync> };
+    const result = validateData(parsed.data);
+    const s = parsed.sync;
+    if (!result.ok || typeof s?.baseRevision !== 'number') return null;
+    return { data: result.data, sync: { dirty: true, baseRevision: s.baseRevision, localUpdatedAt: s.localUpdatedAt ?? null } };
+  } catch {
+    return null;
+  }
+}

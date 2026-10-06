@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LEGACY_BACKUP_KEY, clearLegacyBoard, decideFirstSync, readLegacyBoard } from './firstSync';
+import { LEGACY_BACKUP_KEY, clearLegacyBoard, decideFirstSync, readLegacyBoard, stashUnsynced, takeUnsynced } from './firstSync';
 import { LEGACY_KEY } from '../store/deviceSettings';
 import { createDefaultData } from '../store/defaults';
 
@@ -37,5 +37,25 @@ describe('review I-4: the legacy board is never destroyed', () => {
     clearLegacyBoard();
     expect(localStorage.getItem(LEGACY_KEY)).toBeNull();
     expect(localStorage.getItem(LEGACY_BACKUP_KEY)).toBe(raw);
+  });
+});
+
+describe('unsynced board stash', () => {
+  const sync = { dirty: true, baseRevision: 4, localUpdatedAt: '2026-10-06T01:00:00.000Z' };
+
+  it('gives a stashed board back only to its owner, once', () => {
+    const d = createDefaultData();
+    d.player.totalXp = 77;
+    stashUnsynced('u1', d, sync);
+    expect(takeUnsynced('u2')).toBeNull();
+    const back = takeUnsynced('u1');
+    expect(back?.data.player.totalXp).toBe(77);
+    expect(back?.sync).toEqual(sync);
+    expect(takeUnsynced('u1')).toBeNull();
+  });
+
+  it('ignores a corrupted stash', () => {
+    localStorage.setItem('quest-board-unsynced:u1', '{"data":{"nope":1},"sync":{}}');
+    expect(takeUnsynced('u1')).toBeNull();
   });
 });

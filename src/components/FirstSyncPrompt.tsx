@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { loadBoard, SyncError, type LoadResult } from '../cloud/api';
-import { clearLegacyBoard, decideFirstSync, readLegacyBoard, type FirstSyncCase } from '../cloud/firstSync';
+import { clearLegacyBoard, decideFirstSync, readLegacyBoard, stashUnsynced, takeUnsynced, type FirstSyncCase } from '../cloud/firstSync';
 import { fromCloudBoard } from '../cloud/mapping';
 import { createDefaultData } from '../store/defaults';
 import { useAppStore } from '../store/useAppStore';
@@ -32,6 +32,14 @@ export function FirstSyncPrompt({ userId }: { userId: string }) {
 
   const begin = useCallback(async () => {
     setView({ kind: 'loading' });
+    const store = useAppStore.getState();
+    if (store.ownerId === userId) return; // a previous run already set this account up
+    if (store.ownerId && store.sync.dirty) stashUnsynced(store.ownerId, store.data, store.sync);
+    const unsynced = takeUnsynced(userId);
+    if (unsynced) {
+      store.beginSession(userId, unsynced.data, unsynced.sync);
+      return;
+    }
     let account: LoadResult | null;
     try {
       account = await loadBoard();
@@ -44,12 +52,13 @@ export function FirstSyncPrompt({ userId }: { userId: string }) {
       });
       return;
     }
+    if (useAppStore.getState().ownerId === userId) return; // another run finished first
     const legacy = readLegacyBoard();
     const decision = decideFirstSync(account, legacy);
     if (decision === 'create-default') pushLocal(createDefaultData(), null);
     else if (decision === 'use-account') useAccount(account!);
     else setView({ kind: 'ask', case: decision, account, legacy: legacy! });
-  }, [pushLocal, useAccount]);
+  }, [userId, pushLocal, useAccount]);
 
   useEffect(() => {
     void begin();

@@ -70,6 +70,16 @@ describe('auth actions', () => {
     expect(useAppStore.getState().sync).toEqual(INITIAL_SYNC);
     expect(mod.useAuthStore.getState().status).toBe('signedOut');
   });
+
+  it('signOut keeps unsynced changes for the same account to pick up later', async () => {
+    const { takeUnsynced } = await import('./firstSync');
+    auth.signOut.mockResolvedValue({ error: null });
+    const before = useAppStore.getState().data;
+    useAppStore.getState().beginSession('u1', { ...before, player: { ...before.player, totalXp: 42 } }, { dirty: true, baseRevision: 2, localUpdatedAt: 'x' });
+    await mod.signOut();
+    expect(takeUnsynced('u2')).toBeNull();
+    expect(takeUnsynced('u1')).toMatchObject({ data: { player: { totalXp: 42 } }, sync: { dirty: true, baseRevision: 2 } });
+  });
 });
 
 const googleEnabled = (on: boolean) =>
