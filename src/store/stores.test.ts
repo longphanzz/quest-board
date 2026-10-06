@@ -8,7 +8,7 @@ const app = () => useAppStore.getState();
 const fx = () => useEffectsStore.getState();
 
 beforeEach(() => {
-  useAppStore.setState({ data: createDefaultData(), ownerId: null, sync: { ...INITIAL_SYNC } });
+  useAppStore.setState({ data: createDefaultData(), ownerId: null, sync: { ...INITIAL_SYNC }, lastCleared: null });
   useEffectsStore.setState({ items: [], mood: null });
 });
 afterEach(() => vi.restoreAllMocks());
@@ -182,5 +182,53 @@ describe('cloud cache timestamps', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('clear done quests with undo', () => {
+  const finishWelcome = () => {
+    const { columns } = app().data;
+    app().moveQuest(columns[0].questIds[0], columns[2].id, 0);
+  };
+
+  it('clears Done, remembers the quests for undo, and keeps XP', () => {
+    finishWelcome();
+    const xp = app().data.player.totalXp;
+    expect(app().clearDoneQuests()).toBe(1);
+    expect(app().data.columns[2].questIds).toEqual([]);
+    expect(app().data.player.totalXp).toBe(xp);
+    expect(app().lastCleared).toHaveLength(1);
+    expect(app().sync.dirty).toBe(true);
+  });
+
+  it('undo puts the quests back and forgets them', () => {
+    finishWelcome();
+    const id = app().data.columns[2].questIds[0];
+    app().clearDoneQuests();
+    app().undoClear();
+    expect(app().data.columns[2].questIds).toEqual([id]);
+    expect(app().lastCleared).toBeNull();
+  });
+
+  it('never saves the undo buffer to storage', () => {
+    finishWelcome();
+    app().clearDoneQuests();
+    expect(localStorage.getItem(STORAGE_KEY)).not.toContain('lastCleared');
+  });
+
+  it('forgets the undo buffer on sign-out and when another session begins', () => {
+    finishWelcome();
+    app().clearDoneQuests();
+    app().clearLocalBoard();
+    expect(app().lastCleared).toBeNull();
+    finishWelcome();
+    app().clearDoneQuests();
+    app().beginSession('u2', createDefaultData(), { ...INITIAL_SYNC });
+    expect(app().lastCleared).toBeNull();
+  });
+
+  it('returns 0 and keeps no undo buffer when Done is empty', () => {
+    expect(app().clearDoneQuests()).toBe(0);
+    expect(app().lastCleared).toBeNull();
   });
 });

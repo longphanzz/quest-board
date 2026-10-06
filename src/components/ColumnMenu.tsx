@@ -5,6 +5,7 @@ import { useAppStore } from '../store/useAppStore';
 export function ColumnMenu({ column, onRename }: { column: Column; onRename: () => void }) {
   const setDoneColumn = useAppStore((s) => s.setDoneColumn);
   const deleteColumn = useAppStore((s) => s.deleteColumn);
+  const clearDoneQuests = useAppStore((s) => s.clearDoneQuests);
   const ref = useRef<HTMLDetailsElement>(null);
   const close = () => ref.current?.removeAttribute('open');
 
@@ -31,6 +32,13 @@ export function ColumnMenu({ column, onRename }: { column: Column; onRename: () 
     deleteColumn(column.id);
   };
 
+  const clearDone = () => {
+    close();
+    const n = column.questIds.length;
+    if (!window.confirm(`Delete ${n} completed quest${n === 1 ? '' : 's'}? Your XP, level and achievements are kept.`)) return;
+    clearDoneQuests();
+  };
+
   return (
     <details className="column-menu" ref={ref}>
       <summary className="pixel-btn icon" aria-label={`${column.name} options`}>⋮</summary>
@@ -38,6 +46,9 @@ export function ColumnMenu({ column, onRename }: { column: Column; onRename: () 
         <button className="pixel-btn ghost" onClick={() => { close(); onRename(); }}>Rename</button>
         {!column.isDone && (
           <button className="pixel-btn ghost" onClick={() => { close(); setDoneColumn(column.id); }}>Make Done column</button>
+        )}
+        {column.isDone && (
+          <button className="pixel-btn ghost" disabled={column.questIds.length === 0} onClick={clearDone}>Clear done quests</button>
         )}
         <button
           className="pixel-btn danger"

@@ -9,6 +9,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { PixelEditor } from './components/PixelEditor';
 import { ReloadPrompt } from './components/ReloadPrompt';
 import { CloudGate } from './components/CloudGate';
+import { UndoBar } from './components/UndoBar';
 
 export default function App() {
   const theme = useAppStore((s) => s.data.settings.theme);
@@ -28,6 +29,7 @@ export default function App() {
           <PlayerBar onOpen={setPanel} />
           <Board />
           <EffectsLayer />
+          <UndoBar />
           {panel === 'achievements' && <AchievementsPanel onClose={close} />}
           {panel === 'settings' && <SettingsPanel onClose={close} onEditAvatar={() => setPanel('editor')} />}
           {panel === 'editor' && <PixelEditor onClose={close} />}

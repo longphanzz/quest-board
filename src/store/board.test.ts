@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AppData, Frame } from '../types';
 import {
   addColumn, addLabel, addQuest, deleteColumn, deleteLabel, deleteQuest, moveColumn,
-  renameColumn, resetAvatar, saveAvatar, setDoneColumn, updateQuest,
+  clearDoneQuests, doneQuests, renameColumn, resetAvatar, restoreQuests, saveAvatar, setDoneColumn, updateQuest,
 } from './board';
 import { moveQuest } from './progress';
 import { T0, columnId, emptyBoard, withQuest } from '../test/fixtures';
@@ -131,5 +131,46 @@ describe('avatar', () => {
     const r = saveAvatar(emptyBoard(), { normal: drawn, happy: null, levelUp: null, sad: null }, T0);
     expect(r.events).toContainEqual({ type: 'achievement', id: 'artist' });
     expect(resetAvatar(r.data).data.avatar.frames.normal).toBeNull();
+  });
+});
+
+describe('clear done quests', () => {
+  const board = () => {
+    let data = emptyBoard();
+    data = withQuest(data, 'To Do', { id: 'open' });
+    data = withQuest(data, 'Done', { id: 'd1', completion: { at: T0.toISOString(), xp: 25, difficulty: 'normal', early: false } });
+    data = withQuest(data, 'Done', { id: 'd2', completion: { at: T0.toISOString(), xp: 10, difficulty: 'easy', early: true } });
+    return { ...data, player: { ...data.player, totalXp: 35 } };
+  };
+
+  it('removes only the quests in the Done column and keeps XP', () => {
+    const data = board();
+    expect(doneQuests(data).map((q) => q.id)).toEqual(['d1', 'd2']);
+    const r = clearDoneQuests(data, T0);
+    expect(Object.keys(r.data.quests)).toEqual(['open']);
+    expect(r.data.columns.find((c) => c.isDone)?.questIds).toEqual([]);
+    expect(r.data.player.totalXp).toBe(35);
+  });
+
+  it('changes nothing when Done is empty', () => {
+    const data = emptyBoard();
+    expect(clearDoneQuests(data, T0).data).toBe(data);
+  });
+
+  it('restores cleared quests to the front of Done, in order, with their completion', () => {
+    const data = board();
+    const cleared = doneQuests(data);
+    let after = clearDoneQuests(data, T0).data;
+    after = withQuest(after, 'Done', { id: 'new' });
+    const back = restoreQuests(after, cleared, T0).data;
+    expect(back.columns.find((c) => c.isDone)?.questIds).toEqual(['d1', 'd2', 'new']);
+    expect(back.quests.d1.completion?.xp).toBe(25);
+    expect(back.player.totalXp).toBe(35);
+  });
+
+  it('does not duplicate a quest that is already back on the board', () => {
+    const data = board();
+    const back = restoreQuests(data, doneQuests(data), T0).data;
+    expect(back.columns.find((c) => c.isDone)?.questIds).toEqual(['d1', 'd2']);
   });
 });

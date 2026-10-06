@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
-import type { AppData, AvatarFrames, Result, Settings } from '../types';
+import type { AppData, AvatarFrames, Quest, Result, Settings } from '../types';
 import * as board from './board';
 import type { QuestInput, QuestPatch } from './board';
 import { finalize, moveQuest as moveQuestLogic } from './progress';
@@ -101,6 +101,11 @@ export interface AppState {
   adoptServerBoard: (data: AppData, revision: number) => void;
   markSaved: (revision: number, sentUpdatedAt: string) => void;
   clearLocalBoard: () => void;
+  /** Quests removed by the last "Clear done quests", kept in memory only so it can be undone. */
+  lastCleared: Quest[] | null;
+  clearDoneQuests: () => number;
+  undoClear: () => void;
+  dismissUndo: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -128,6 +133,20 @@ export const useAppStore = create<AppState>()(
         data: freshData(),
         ownerId: null,
         sync: { ...INITIAL_SYNC },
+        lastCleared: null,
+        clearDoneQuests: () => {
+          const cleared = board.doneQuests(get().data);
+          if (cleared.length === 0) return 0;
+          run((d, now) => board.clearDoneQuests(d, now));
+          set({ lastCleared: cleared });
+          return cleared.length;
+        },
+        undoClear: () => {
+          const cleared = get().lastCleared;
+          set({ lastCleared: null });
+          if (cleared) run((d, now) => board.restoreQuests(d, cleared, now));
+        },
+        dismissUndo: () => set({ lastCleared: null }),
         addQuest: (columnId, input) => run((d, now) => board.addQuest(d, columnId, input, now)).createdId ?? null,
         updateQuest: (questId, patch) => !run((d, now) => board.updateQuest(d, questId, patch, now)).error,
         deleteQuest: (questId) => void run((d, now) => board.deleteQuest(d, questId, now)),
@@ -149,7 +168,8 @@ export const useAppStore = create<AppState>()(
         },
         markExported: () => get().updateSettings({ lastExportAt: new Date().toISOString() }),
         replaceData: (data) => void run((current, now) => finalize({ ...data, settings: current.settings }, [], now)),
-        beginSession: (ownerId, data, sync) => set({ ownerId, data: { ...data, settings: get().data.settings }, sync }),
+        beginSession: (ownerId, data, sync) =>
+          set({ ownerId, data: { ...data, settings: get().data.settings }, sync, lastCleared: null }),
         adoptServerBoard: (data, revision) =>
           set({ data: { ...data, settings: get().data.settings }, sync: { dirty: false, baseRevision: revision, localUpdatedAt: null } }),
         markSaved: (revision, sentUpdatedAt) =>
@@ -157,7 +177,7 @@ export const useAppStore = create<AppState>()(
             sync: { dirty: s.sync.localUpdatedAt !== sentUpdatedAt, baseRevision: revision, localUpdatedAt: s.sync.localUpdatedAt },
           })),
         clearLocalBoard: () => {
-          set({ ownerId: null, sync: { ...INITIAL_SYNC }, data: { ...createDefaultData(), settings: get().data.settings } });
+          set({ ownerId: null, sync: { ...INITIAL_SYNC }, lastCleared: null, data: { ...createDefaultData(), settings: get().data.settings } });
           useAppStore.persist.clearStorage();
         },
       };

@@ -68,6 +68,33 @@ export function deleteQuest(data: AppData, questId: string, now: Date): Result {
   return finalize({ ...data, quests, columns }, [], now);
 }
 
+/** Quests in the Done column, top to bottom. */
+export function doneQuests(data: AppData): Quest[] {
+  const done = data.columns.find((c) => c.isDone);
+  return (done?.questIds ?? []).map((id) => data.quests[id]).filter((q): q is Quest => Boolean(q));
+}
+
+/** Tidies the board: removes every quest in Done. XP, level and achievements are kept. */
+export function clearDoneQuests(data: AppData, now: Date): Result {
+  const cleared = new Set(doneQuests(data).map((q) => q.id));
+  if (cleared.size === 0) return unchanged(data);
+  const quests = Object.fromEntries(Object.entries(data.quests).filter(([id]) => !cleared.has(id)));
+  const columns = data.columns.map((c) => (c.isDone ? { ...c, questIds: [] } : c));
+  return finalize({ ...data, quests, columns }, [], now);
+}
+
+/** Undo for clearDoneQuests: puts the quests back at the top of the current Done column. */
+export function restoreQuests(data: AppData, quests: Quest[], now: Date): Result {
+  const missing = quests.filter((q) => !data.quests[q.id]);
+  if (missing.length === 0) return unchanged(data);
+  const ids = missing.map((q) => q.id);
+  return finalize({
+    ...data,
+    quests: { ...data.quests, ...Object.fromEntries(missing.map((q) => [q.id, q])) },
+    columns: data.columns.map((c) => (c.isDone ? { ...c, questIds: [...ids, ...c.questIds] } : c)),
+  }, [], now);
+}
+
 export function addColumn(data: AppData, name: string): Result {
   const column: Column = { id: newId(), name: clean(name, MAX_COLUMN_NAME_LENGTH) ?? 'New Column', questIds: [], isDone: false };
   return { data: { ...data, columns: [...data.columns, column] }, events: [], createdId: column.id };

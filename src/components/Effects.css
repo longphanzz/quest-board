@@ -65,3 +65,5 @@
 .badge { flex: 0 0 44px; height: 44px; display: grid; place-items: center; font-size: 26px; background: var(--bg); border: 3px solid var(--accent); }
 .achievement-name { font-family: var(--font-title); font-size: 10px; line-height: 1.5; margin-bottom: 4px; }
 .achievement-desc, .achievement-date { font-size: 17px; color: var(--ink-dim); }
+
+.undo-bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 12px; padding: 8px 12px; font-size: 20px; max-width: calc(100vw - 32px); }
