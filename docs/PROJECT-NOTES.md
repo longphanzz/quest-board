@@ -72,8 +72,8 @@ Cập nhật: 2026-10-03. File này ghi lại toàn bộ bối cảnh để ti�
 6. Đồng bộ dữ liệu app ↔ Supabase (cân nhắc giữ chế độ offline).
 
 ## 4. Việc khác có thể làm sau
-- Đưa app lên mạng (Cloudflare Pages / Netlify / GitHub Pages) để cài PWA lên điện thoại — người dùng chưa chọn; đưa lên là công khai ra ngoài nên phải hỏi trước.
-- Repo chưa có remote GitHub.
+- ĐÃ deploy (2026-10-06): Cloudflare Workers (static assets, `wrangler.jsonc`), nối GitHub `longphanzz/quest-board` → push `master` là tự build. Link: https://quest-board.scratch-2026-09-12-9c5ee7.workers.dev. Build command `npm run build`, deploy `npx wrangler deploy`, 2 biến VITE_SUPABASE_* đặt ở Build variables.
+- Cần thêm link trên vào Supabase → Authentication → URL Configuration (Redirect URLs / Site URL) để đăng nhập Google & link email chạy.
 
 ## 5. Về người dùng
 - Nói tiếng Việt; người mới, không rành kỹ thuật → giải thích đơn giản, dùng ví dụ, tránh thuật ngữ khó.
