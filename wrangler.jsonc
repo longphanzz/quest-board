@@ -1,0 +1,10 @@
+// Cloudflare Workers config: serves the Vite build in ./dist as a static single-page app.
+{
+  "name": "quest-board",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // Unknown paths fall back to index.html so client-side routes still load.
+    "not_found_handling": "single-page-application"
+  }
+}
