@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { createSyncEngine } from './syncEngine';
 import { loadBoard, saveBoard } from './api';
 import { fromCloudBoard } from './mapping';
+import { subscribeToRevisions } from './realtime';
 import { useSyncStore } from './useSyncStore';
 import { useAppStore } from '../store/useAppStore';
 import { useEffectsStore } from '../store/useEffectsStore';
@@ -39,11 +40,16 @@ export function useCloudSync(userId: string): void {
     };
     window.addEventListener('online', onOnline);
     document.addEventListener('visibilitychange', onVisible);
+    // Another device saved: pull right away instead of waiting for the tab to regain focus.
+    const unsubscribeRealtime = subscribeToRevisions(userId, (revision) => {
+      if (revision > useAppStore.getState().sync.baseRevision) void engine.sync();
+    });
     void engine.start();
 
     return () => {
       engine.stop();
       unsubscribe();
+      unsubscribeRealtime();
       window.removeEventListener('online', onOnline);
       document.removeEventListener('visibilitychange', onVisible);
       useSyncStore.setState({ retry: null, status: 'synced' });
