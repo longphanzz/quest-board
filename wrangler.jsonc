@@ -1,10 +1,19 @@
-// Cloudflare Workers config: serves the Vite build in ./dist as a static single-page app.
+// Cloudflare Workers config: worker/index.ts answers /api/*, the Vite build in ./dist serves the app.
 {
   "name": "quest-board",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     // Unknown paths fall back to index.html so client-side routes still load.
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    // Send /api/* to the worker even when an asset or the SPA fallback would match.
+    "run_worker_first": ["/api/*"]
+  },
+  // Public values (same ones the browser already has). OPENAI_API_KEY is a secret: wrangler secret put OPENAI_API_KEY
+  "vars": {
+    "SUPABASE_URL": "https://nbrrjkwlqwdxojnnpfvp.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_iPg8HzthrWkIyYFSr-KiVw_GVgJJISi"
   }
 }

@@ -1,16 +1,17 @@
-// Agent proxy: keeps the OpenAI key on the server. The browser runs the tools itself
+// Agent endpoint: keeps the OpenAI key on the server. The browser runs the tools itself
 // (through the existing store) so cloud sync, XP and undo keep working unchanged.
-// Supabase verifies the caller's JWT before this code runs (verify_jwt defaults to on).
 
-const MODEL = Deno.env.get('OPENAI_MODEL') ?? 'gpt-6-luna';
+export interface Env {
+  ASSETS: { fetch: (req: Request) => Promise<Response> };
+  OPENAI_API_KEY?: string;
+  OPENAI_MODEL?: string;
+  SUPABASE_URL: string;
+  SUPABASE_PUBLISHABLE_KEY: string;
+}
+
+const DEFAULT_MODEL = 'gpt-6-luna';
 const MAX_MESSAGES = 40;
 const MAX_BODY_CHARS = 60_000;
-
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 const SYSTEM = `You are the quest coach inside "Quest Board", a gamified kanban app.
 Quests live in columns; the done column holds finished quests with their completion dates (the user's history).
@@ -87,14 +88,22 @@ const tools = [
 ];
 
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+/** Only signed-in users may spend OpenAI credit: ask Supabase Auth whether the access token is valid. */
+async function isSignedIn(req: Request, env: Env): Promise<boolean> {
+  const auth = req.headers.get('Authorization');
+  if (!auth?.startsWith('Bearer ')) return false;
+  const res = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+    headers: { Authorization: auth, apikey: env.SUPABASE_PUBLISHABLE_KEY },
+  });
+  return res.ok;
+}
+
+export async function handleAgent(req: Request, env: Env): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
-
-  const key = Deno.env.get('OPENAI_API_KEY');
-  if (!key) return json({ error: 'OPENAI_API_KEY is not set' }, 500);
+  if (!(await isSignedIn(req, env))) return json({ error: 'Sign in required' }, 401);
+  if (!env.OPENAI_API_KEY) return json({ error: 'OPENAI_API_KEY is not set' }, 500);
 
   // Cap input so one user cannot run up the OpenAI bill with a huge history.
   const raw = await req.text();
@@ -115,10 +124,10 @@ Deno.serve(async (req) => {
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     // gpt-6-luna rejects tools + reasoning on chat/completions; shortcut: reasoning off, move to /v1/responses if reasoning is needed.
     body: JSON.stringify({
-      model: MODEL,
+      model: env.OPENAI_MODEL || DEFAULT_MODEL,
       messages: [{ role: 'system', content: SYSTEM }, ...messages],
       tools,
       reasoning_effort: 'none',
@@ -128,7 +137,7 @@ Deno.serve(async (req) => {
     console.error('OpenAI error', res.status, await res.text());
     return json({ error: 'AI request failed' }, 502);
   }
-  const data = await res.json();
+  const data = (await res.json()) as { choices: { message: unknown }[] };
   // Returns either a text reply or tool_calls for the browser to run.
   return json({ message: data.choices[0].message });
-});
+}

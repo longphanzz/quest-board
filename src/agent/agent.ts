@@ -94,6 +94,23 @@ function parseArgs(raw: string): Args {
   }
 }
 
+/** POSTs to our Cloudflare Worker with the Supabase access token so it can check who is calling. */
+async function callAgent(messages: ChatMessage[]): Promise<{ message?: ChatMessage } | null> {
+  const { data } = await getSupabase().auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error('Please sign in to use the coach.');
+  try {
+    const res = await fetch('/api/agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ messages }),
+    });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The agent loop: ask the model, run any tools it calls, send the results back, repeat until it answers in text.
  * Returns the conversation without tool traffic: board snapshots are big and stale by the next turn anyway.
@@ -101,8 +118,8 @@ function parseArgs(raw: string): Args {
 export async function runAgent(history: ChatMessage[]): Promise<ChatMessage[]> {
   const messages = [...history];
   for (let step = 0; step < MAX_STEPS; step++) {
-    const { data, error } = await getSupabase().functions.invoke<{ message: ChatMessage }>('agent', { body: { messages } });
-    if (error || !data?.message) throw new Error('The assistant is unavailable right now.');
+    const data = await callAgent(messages);
+    if (!data?.message) throw new Error('The assistant is unavailable right now.');
     const reply = data.message as Extract<ChatMessage, { role: 'assistant' }>;
     messages.push(reply);
     if (!reply.tool_calls?.length) return compact(messages);

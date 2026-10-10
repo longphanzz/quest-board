@@ -3,14 +3,18 @@ import { INITIAL_SYNC, useAppStore } from '../store/useAppStore';
 import { createDefaultData } from '../store/defaults';
 import { runAgent, runTool } from './agent';
 
-const invoke = vi.fn();
-vi.mock('../cloud/client', () => ({ getSupabase: () => ({ functions: { invoke } }) }));
+const getSession = vi.fn(async () => ({ data: { session: { access_token: 'tok' } } }));
+vi.mock('../cloud/client', () => ({ getSupabase: () => ({ auth: { getSession } }) }));
+const fetchMock = vi.fn();
+vi.stubGlobal('fetch', fetchMock);
+const reply = (message: unknown) => ({ ok: true, json: async () => ({ message }) });
+const sentBody = (call: number) => JSON.parse(fetchMock.mock.calls[call][1].body);
 
 const app = () => useAppStore.getState();
 
 beforeEach(() => {
   useAppStore.setState({ data: createDefaultData(), ownerId: null, sync: { ...INITIAL_SYNC }, lastCleared: null });
-  invoke.mockReset();
+  fetchMock.mockReset();
 });
 
 describe('runTool', () => {
@@ -47,20 +51,28 @@ describe('runTool', () => {
 describe('runAgent', () => {
   it('runs tool calls then returns only the visible conversation', async () => {
     const todo = app().data.columns[0].id;
-    invoke
-      .mockResolvedValueOnce({ data: { message: { role: 'assistant', content: null, tool_calls: [
+    fetchMock
+      .mockResolvedValueOnce(reply({ role: 'assistant', content: null, tool_calls: [
         { id: 'c1', type: 'function', function: { name: 'add_quest', arguments: JSON.stringify({ columnId: todo, title: 'Plank 1 phút' }) } },
-      ] } } })
-      .mockResolvedValueOnce({ data: { message: { role: 'assistant', content: 'Đã thêm!' } } });
+      ] }))
+      .mockResolvedValueOnce(reply({ role: 'assistant', content: 'Đã thêm!' }));
 
     const out = await runAgent([{ role: 'user', content: 'thêm plank' }]);
     expect(out).toEqual([{ role: 'user', content: 'thêm plank' }, { role: 'assistant', content: 'Đã thêm!' }]);
     expect(Object.values(app().data.quests).some((q) => q.title === 'Plank 1 phút')).toBe(true);
-    expect(invoke.mock.calls[1][1].body.messages).toContainEqual(expect.objectContaining({ role: 'tool', tool_call_id: 'c1' }));
+    expect(sentBody(1).messages).toContainEqual(expect.objectContaining({ role: 'tool', tool_call_id: 'c1' }));
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/agent');
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer tok');
   });
 
   it('throws when the function fails', async () => {
-    invoke.mockResolvedValueOnce({ data: null, error: new Error('500') });
+    fetchMock.mockResolvedValueOnce({ ok: false, json: async () => ({}) });
     await expect(runAgent([{ role: 'user', content: 'hi' }])).rejects.toThrow();
+  });
+
+  it('asks the user to sign in instead of calling without a token', async () => {
+    getSession.mockResolvedValueOnce({ data: { session: null } } as never);
+    await expect(runAgent([{ role: 'user', content: 'hi' }])).rejects.toThrow(/sign in/);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

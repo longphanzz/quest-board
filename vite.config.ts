@@ -26,6 +26,10 @@ export default defineConfig({
       workbox: { globPatterns: ['**/*.{js,css,html,png,woff,woff2}'] },
     }),
   ],
+  // shortcut: `npm run dev` talks to the deployed worker's /api, so worker changes need a deploy (or `wrangler dev`) to test.
+  server: {
+    proxy: { '/api': { target: 'https://quest-board.scratch-2026-09-12-9c5ee7.workers.dev', changeOrigin: true } },
+  },
   test: {
     environment: 'jsdom',
     pool: 'threads',
