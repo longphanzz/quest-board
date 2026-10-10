@@ -37,7 +37,7 @@
 @keyframes overlay-out { 90% { opacity: 1; } 100% { opacity: 0; } }
 
 .toast-stack {
-  position: fixed; right: 16px; bottom: 16px; z-index: 45;
+  position: fixed; right: 16px; bottom: 88px; z-index: 45; /* clears the coach button */
   display: flex; flex-direction: column; gap: 8px;
   max-width: calc(100vw - 32px); pointer-events: none;
 }

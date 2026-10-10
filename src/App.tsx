@@ -10,6 +10,7 @@ import { PixelEditor } from './components/PixelEditor';
 import { ReloadPrompt } from './components/ReloadPrompt';
 import { CloudGate } from './components/CloudGate';
 import { UndoBar } from './components/UndoBar';
+import { AgentPanel } from './components/AgentPanel';
 
 export default function App() {
   const theme = useAppStore((s) => s.data.settings.theme);
@@ -33,6 +34,8 @@ export default function App() {
           {panel === 'achievements' && <AchievementsPanel onClose={close} />}
           {panel === 'settings' && <SettingsPanel onClose={close} onEditAvatar={() => setPanel('editor')} />}
           {panel === 'editor' && <PixelEditor onClose={close} />}
+          {panel === 'agent' && <AgentPanel onClose={close} />}
+          <button className="pixel-btn agent-fab" onClick={() => setPanel('agent')} aria-label="Open quest coach">🤖</button>
         </div>
       </CloudGate>
       <ReloadPrompt />

@@ -1,0 +1,17 @@
+.agent-log { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; margin-bottom: 12px; }
+.agent-msg { margin: 0; padding: 8px 10px; white-space: pre-wrap; border: 2px solid var(--border); max-width: 85%; }
+.agent-msg.user { align-self: flex-end; background: var(--panel-alt); }
+.agent-msg.assistant { align-self: flex-start; background: var(--card); color: var(--card-ink); }
+.agent-msg.error { align-self: stretch; max-width: none; border-color: var(--danger); color: var(--danger); }
+.agent-form { display: flex; gap: 8px; }
+.agent-form .field-input { flex: 1; min-width: 0; }
+.agent-fab {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 49; /* below modals (50) */
+  width: 56px;
+  height: 56px;
+  font-size: 28px;
+  padding: 0;
+}

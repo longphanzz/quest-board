@@ -7,7 +7,7 @@ import { PlayerAvatar } from './PlayerAvatar';
 import { SyncStatus } from './SyncStatus';
 import './PlayerBar.css';
 
-export type Panel = 'achievements' | 'settings' | 'editor';
+export type Panel = 'achievements' | 'settings' | 'editor' | 'agent';
 
 export function PlayerBar({ onOpen }: { onOpen: (panel: Panel) => void }) {
   const player = useAppStore((s) => s.data.player);
@@ -39,6 +39,7 @@ export function PlayerBar({ onOpen }: { onOpen: (panel: Panel) => void }) {
       </div>
       <nav className="player-actions">
         <SyncStatus />
+        <button className="pixel-btn icon" onClick={() => onOpen('agent')} aria-label="Quest coach">🤖</button>
         <button className="pixel-btn icon" onClick={() => onOpen('achievements')} aria-label="Achievements">🏆</button>
         <button className="pixel-btn icon" onClick={() => onOpen('settings')} aria-label="Settings">⚙️</button>
         <button className="pixel-btn icon" onClick={() => updateSettings({ muted: !muted })} aria-label={muted ? 'Unmute' : 'Mute'}>
