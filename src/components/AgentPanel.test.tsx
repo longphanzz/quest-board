@@ -54,4 +54,18 @@ describe('AgentPanel', () => {
     expect(await screen.findByText('Done')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Undo coach changes/ })).toBeNull();
   });
+
+  it('asks before the coach completes a quest and passes the answer back', async () => {
+    let answer: boolean | undefined;
+    runAgent.mockImplementation(async (history: ChatMessage[], confirm: (q: string) => Promise<boolean>) => {
+      answer = await confirm('Mark "Plank" as complete? This gives XP.');
+      return [...history, { role: 'assistant', content: 'ok' }];
+    });
+    render(<AgentPanel onClose={() => {}} />);
+    await ask('done plank');
+    await userEvent.click(await screen.findByRole('button', { name: 'No' }));
+    expect(await screen.findByText('ok')).toBeInTheDocument();
+    expect(answer).toBe(false);
+    expect(screen.queryByText(/as complete/)).toBeNull();
+  });
 });

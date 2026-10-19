@@ -65,6 +65,24 @@ describe('runAgent', () => {
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer tok');
   });
 
+  it('only completes a quest when the user approves', async () => {
+    const [todo, , done] = app().data.columns;
+    const questId = todo.questIds[0];
+    const moveCall = { role: 'assistant', content: null, tool_calls: [
+      { id: 'm1', type: 'function', function: { name: 'move_quest', arguments: JSON.stringify({ questId, toColumnId: done.id }) } },
+    ] };
+    fetchMock.mockResolvedValueOnce(reply(moveCall)).mockResolvedValueOnce(reply({ role: 'assistant', content: 'OK' }));
+    await runAgent([{ role: 'user', content: 'xong rồi' }]); // no confirm callback = declined
+    expect(app().data.quests[questId].completion).toBeNull();
+    expect(sentBody(1).messages.at(-1).content).toMatch(/declined/);
+
+    const confirm = vi.fn(async () => true);
+    fetchMock.mockResolvedValueOnce(reply(moveCall)).mockResolvedValueOnce(reply({ role: 'assistant', content: 'OK' }));
+    await runAgent([{ role: 'user', content: 'xong rồi' }], confirm);
+    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/complete/));
+    expect(app().data.quests[questId].completion).not.toBeNull();
+  });
+
   it('throws when the function fails', async () => {
     fetchMock.mockResolvedValueOnce({ ok: false, json: async () => ({}) });
     await expect(runAgent([{ role: 'user', content: 'hi' }])).rejects.toThrow();

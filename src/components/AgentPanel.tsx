@@ -1,4 +1,4 @@
-import { Fragment, useState, type FormEvent } from 'react';
+import { Fragment, useEffect, useRef, useState, type FormEvent } from 'react';
 import { runAgent, type ChatMessage } from '../agent/agent';
 import { useAppStore } from '../store/useAppStore';
 import { useEffectsStore } from '../store/useEffectsStore';
@@ -7,6 +7,7 @@ import { Modal } from './Modal';
 import './AgentPanel.css';
 
 interface UndoPoint { before: AppData; after: AppData }
+interface Ask { question: string; answer: (ok: boolean) => void }
 
 // Kept at module level so closing the panel does not wipe the conversation or the undo point.
 let saved: ChatMessage[] = [];
@@ -27,9 +28,20 @@ export function AgentPanel({ onClose }: { onClose: () => void }) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ask, setAsk] = useState<Ask | null>(null);
+  const askRef = useRef<Ask | null>(null);
   const data = useAppStore((s) => s.data);
   // Only offer undo while the board is exactly as the agent left it, so it never wipes the user's own edits.
   const canUndo = undo !== null && undo.after === data;
+
+  const confirm = (question: string) =>
+    new Promise<boolean>((resolve) => {
+      const next: Ask = { question, answer: (ok) => { askRef.current = null; setAsk(null); resolve(ok); } };
+      askRef.current = next;
+      setAsk(next);
+    });
+  // Closing the panel mid-question counts as "no", so the agent loop never hangs.
+  useEffect(() => () => askRef.current?.answer(false), []);
 
   const keepUndo = (point: UndoPoint | null) => {
     savedUndo = point;
@@ -47,7 +59,7 @@ export function AgentPanel({ onClose }: { onClose: () => void }) {
     setError(null);
     const before = useAppStore.getState().data;
     try {
-      saved = await runAgent(next);
+      saved = await runAgent(next, confirm);
       setMessages(saved);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -80,7 +92,14 @@ export function AgentPanel({ onClose }: { onClose: () => void }) {
             <p key={i} className="agent-msg assistant">{renderInline(m.content)}</p>
           ) : null,
         )}
-        {busy && <p className="agent-msg assistant">…</p>}
+        {ask && (
+          <div className="agent-confirm" role="group" aria-label="Coach needs your approval">
+            <p>{ask.question}</p>
+            <button className="pixel-btn primary" onClick={() => ask.answer(true)}>Yes, complete it</button>
+            <button className="pixel-btn" onClick={() => ask.answer(false)}>No</button>
+          </div>
+        )}
+        {busy && !ask && <p className="agent-msg assistant">…</p>}
         {error && <p className="agent-msg error" role="alert">{error}</p>}
         {canUndo && !busy && (
           <button className="pixel-btn agent-undo" onClick={onUndo}>↩ Undo coach changes</button>

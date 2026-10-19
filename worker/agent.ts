@@ -76,7 +76,7 @@ const tools = [
     type: 'function',
     function: {
       name: 'move_quest',
-      description: 'Move a quest to the bottom of another column. Moving into the done column completes it.',
+      description: 'Move a quest to the bottom of another column. Moving into the done column completes it; the app asks the user to confirm first.',
       parameters: {
         type: 'object',
         properties: { questId: { type: 'string' }, toColumnId: { type: 'string' } },

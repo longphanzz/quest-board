@@ -112,10 +112,25 @@ async function callAgent(messages: ChatMessage[]): Promise<{ message?: ChatMessa
 }
 
 /**
+ * Completing a quest grants XP and touches the streak, so the model may never do it on its own:
+ * returns the question to ask the user, or null when the call needs no approval.
+ */
+export function needsApproval(name: string, args: Args): string | null {
+  if (name !== 'move_quest') return null;
+  const { data } = useAppStore.getState();
+  const quest = data.quests[str(args.questId) ?? ''];
+  const column = data.columns.find((c) => c.id === str(args.toColumnId));
+  if (!quest || !column?.isDone || quest.completion) return null;
+  return `Mark "${quest.title}" as complete? This gives XP.`;
+}
+
+export type Confirm = (question: string) => Promise<boolean>;
+
+/**
  * The agent loop: ask the model, run any tools it calls, send the results back, repeat until it answers in text.
  * Returns the conversation without tool traffic: board snapshots are big and stale by the next turn anyway.
  */
-export async function runAgent(history: ChatMessage[]): Promise<ChatMessage[]> {
+export async function runAgent(history: ChatMessage[], confirm: Confirm = async () => false): Promise<ChatMessage[]> {
   const messages = [...history];
   for (let step = 0; step < MAX_STEPS; step++) {
     const data = await callAgent(messages);
@@ -124,7 +139,11 @@ export async function runAgent(history: ChatMessage[]): Promise<ChatMessage[]> {
     messages.push(reply);
     if (!reply.tool_calls?.length) return compact(messages);
     for (const call of reply.tool_calls) {
-      const result = runTool(call.function.name, parseArgs(call.function.arguments));
+      const args = parseArgs(call.function.arguments);
+      const question = needsApproval(call.function.name, args);
+      const result = question && !(await confirm(question))
+        ? { error: 'The user declined. Do not retry; ask what they want instead.' }
+        : runTool(call.function.name, args);
       messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
     }
   }
