@@ -50,4 +50,24 @@ describe('handleAgent', () => {
     expect(body.model).toBe('gpt-6-luna');
     expect(body.messages[0].role).toBe('system');
   });
+
+  it('routes to the model the user picked and rejects unknown ones', async () => {
+    fetchMock.mockResolvedValue(ok({ id: 'u1' }));
+    const msgs = [{ role: 'user', content: 'hi' }];
+    expect((await handleAgent(post({ messages: msgs, provider: 'claude-free' }), env)).status).toBe(400);
+    expect((await handleAgent(post({ messages: msgs, provider: '__proto__' }), env)).status).toBe(400);
+    const missing = await handleAgent(post({ messages: msgs, provider: 'gemini' }), env);
+    expect(missing.status).toBe(503);
+    expect((await missing.json()).error).toMatch(/GEMINI_API_KEY/);
+
+    fetchMock.mockReset();
+    fetchMock
+      .mockResolvedValueOnce(ok({ id: 'u1' }))
+      .mockResolvedValueOnce(ok({ choices: [{ message: { role: 'assistant', content: 'Hi!' } }] }));
+    await handleAgent(post({ messages: msgs, provider: 'gemini' }), { ...env, GEMINI_API_KEY: 'g-key' });
+    const [url, init] = fetchMock.mock.calls[1];
+    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+    expect(init.headers.Authorization).toBe('Bearer g-key');
+    expect(JSON.parse(init.body)).toMatchObject({ model: 'gemini-3.8-flash', reasoning_effort: 'low' });
+  });
 });

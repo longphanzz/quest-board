@@ -12,6 +12,13 @@ export type ChatMessage =
   | { role: 'tool'; tool_call_id: string; content: string };
 
 const MAX_STEPS = 8;
+
+/** Models the user can pick; the Worker keeps its own allowlist of these ids. */
+export const MODELS = [
+  { id: 'gpt', label: 'GPT (OpenAI)' },
+  { id: 'gemini', label: 'Gemini Flash (Google)' },
+] as const;
+export type ModelId = (typeof MODELS)[number]['id'];
 const DIFFICULTIES: Difficulty[] = ['easy', 'normal', 'hard', 'boss'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -95,20 +102,23 @@ function parseArgs(raw: string): Args {
 }
 
 /** POSTs to our Cloudflare Worker with the Supabase access token so it can check who is calling. */
-async function callAgent(messages: ChatMessage[]): Promise<{ message?: ChatMessage } | null> {
+async function callAgent(messages: ChatMessage[], model: ModelId): Promise<{ message?: ChatMessage } | null> {
   const { data } = await getSupabase().auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error('Please sign in to use the coach.');
+  let res: Response;
   try {
-    const res = await fetch('/api/agent', {
+    res = await fetch('/api/agent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, provider: model }),
     });
-    return res.ok ? await res.json() : null;
   } catch {
     return null;
   }
+  const body = await res.json().catch(() => null);
+  if (res.status === 503 && body?.error) throw new Error(body.error); // model not set up: say which
+  return res.ok ? body : null;
 }
 
 /**
@@ -130,10 +140,14 @@ export type Confirm = (question: string) => Promise<boolean>;
  * The agent loop: ask the model, run any tools it calls, send the results back, repeat until it answers in text.
  * Returns the conversation without tool traffic: board snapshots are big and stale by the next turn anyway.
  */
-export async function runAgent(history: ChatMessage[], confirm: Confirm = async () => false): Promise<ChatMessage[]> {
+export async function runAgent(
+  history: ChatMessage[],
+  confirm: Confirm = async () => false,
+  model: ModelId = 'gpt',
+): Promise<ChatMessage[]> {
   const messages = [...history];
   for (let step = 0; step < MAX_STEPS; step++) {
-    const data = await callAgent(messages);
+    const data = await callAgent(messages, model);
     if (!data?.message) throw new Error('The assistant is unavailable right now.');
     const reply = data.message as Extract<ChatMessage, { role: 'assistant' }>;
     messages.push(reply);

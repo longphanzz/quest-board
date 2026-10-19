@@ -6,7 +6,7 @@ import { createDefaultData } from '../store/defaults';
 import type { ChatMessage } from '../agent/agent';
 
 const { runAgent } = vi.hoisted(() => ({ runAgent: vi.fn() }));
-vi.mock('../agent/agent', () => ({ runAgent }));
+vi.mock('../agent/agent', async (orig) => ({ ...(await orig<typeof import('../agent/agent')>()), runAgent }));
 
 import { AgentPanel } from './AgentPanel';
 
@@ -67,5 +67,15 @@ describe('AgentPanel', () => {
     expect(await screen.findByText('ok')).toBeInTheDocument();
     expect(answer).toBe(false);
     expect(screen.queryByText(/as complete/)).toBeNull();
+  });
+
+  it('sends the chosen model and remembers it', async () => {
+    runAgent.mockImplementation(async (history: ChatMessage[]) => [...history, { role: 'assistant', content: 'hi' }]);
+    render(<AgentPanel onClose={() => {}} />);
+    await userEvent.selectOptions(screen.getByLabelText('Model'), 'gemini');
+    await ask('hello');
+    expect(await screen.findByText('hi')).toBeInTheDocument();
+    expect(runAgent.mock.calls[0][2]).toBe('gemini');
+    expect(localStorage.getItem('quest-coach-model')).toBe('gemini');
   });
 });
