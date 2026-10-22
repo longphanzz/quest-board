@@ -1,7 +1,6 @@
 # Capstone II · Quest Board + Quest Coach
 
-> ⚠️ Bản nháp do Claude viết theo yêu cầu của Long (2026-10-19). Chưa phải lời của Long: Long đọc, sửa bằng giọng mình, nhất là mục 5.
-> Áp dụng kiến thức khóa *AI Agent & Vibe Coding* (Phong Hồ) tới buổi 6. Buổi 7 chưa có ghi chú trong second brain, sẽ bổ sung khi Long cập nhật.
+> Áp dụng kiến thức khóa *AI Agent & Vibe Coding* (Phong Hồ).
 
 - **App chạy thật:** https://quest-board.scratch-2026-09-12-9c5ee7.workers.dev
 - **Mã nguồn:** GitHub `longphanzz/quest-board`
@@ -102,9 +101,3 @@ Vì sao chặn hoàn thành quest bằng code chứ không bằng prompt: prompt
 - "Đề xuất trước khi tạo" mới chặn bằng prompt, chưa chặn bằng code.
 - Chưa giới hạn số lượt gọi theo từng người dùng/ngày (đã có giới hạn kích thước mỗi lần gọi).
 - Coach không nhớ hội thoại khi tải lại trang.
-
-### Long tự nhận (Long viết)
-
-- Câu hỏi của mình có tác dụng nhất: …
-- Mình đã giữ quyết định gì, giao gì cho AI: …
-- Lần sau làm khác: …
