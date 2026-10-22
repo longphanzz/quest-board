@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type FormEvent } from 'react';
-import { MODELS, runAgent, type ChatMessage, type ModelId } from '../agent/agent';
+import { runAgent, type ChatMessage } from '../agent/agent';
 import { useAppStore } from '../store/useAppStore';
 import { useEffectsStore } from '../store/useEffectsStore';
 import type { AppData } from '../types';
@@ -12,16 +12,6 @@ interface Ask { question: string; answer: (ok: boolean) => void }
 // Kept at module level so closing the panel does not wipe the conversation or the undo point.
 let saved: ChatMessage[] = [];
 let savedUndo: UndoPoint | null = null;
-
-const MODEL_KEY = 'quest-coach-model';
-function loadModel(): ModelId {
-  try {
-    const v = localStorage.getItem(MODEL_KEY);
-    return MODELS.some((m) => m.id === v) ? (v as ModelId) : 'gpt';
-  } catch {
-    return 'gpt';
-  }
-}
 
 /** Renders the model's **bold** and *italic* markdown; everything else stays plain text. */
 export function renderInline(text: string) {
@@ -39,7 +29,6 @@ export function AgentPanel({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ask, setAsk] = useState<Ask | null>(null);
-  const [model, setModel] = useState<ModelId>(loadModel);
   const askRef = useRef<Ask | null>(null);
   const data = useAppStore((s) => s.data);
   // Only offer undo while the board is exactly as the agent left it, so it never wipes the user's own edits.
@@ -70,7 +59,7 @@ export function AgentPanel({ onClose }: { onClose: () => void }) {
     setError(null);
     const before = useAppStore.getState().data;
     try {
-      saved = await runAgent(next, confirm, model);
+      saved = await runAgent(next, confirm);
       setMessages(saved);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -79,11 +68,6 @@ export function AgentPanel({ onClose }: { onClose: () => void }) {
       if (after !== before) keepUndo({ before, after });
       setBusy(false);
     }
-  };
-
-  const pickModel = (id: ModelId) => {
-    setModel(id);
-    try { localStorage.setItem(MODEL_KEY, id); } catch { /* private mode: choice lasts this session only */ }
   };
 
   const onUndo = () => {
@@ -121,12 +105,6 @@ export function AgentPanel({ onClose }: { onClose: () => void }) {
           <button className="pixel-btn agent-undo" onClick={onUndo}>↩ Undo coach changes</button>
         )}
       </div>
-      <label className="agent-model">
-        Model{' '}
-        <select className="field-input" value={model} disabled={busy} onChange={(e) => pickModel(e.target.value as ModelId)}>
-          {MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-        </select>
-      </label>
       <form className="agent-form" onSubmit={send}>
         <input
           className="field-input"

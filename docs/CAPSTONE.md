@@ -52,7 +52,6 @@ Nguyên tắc: **mức kiểm soát tăng theo mức ảnh hưởng.** Đọc th
 |---|---|---|
 | Người lạ dùng chùa tiền OpenAI | Worker chỉ phục vụ người đã đăng nhập (kiểm tra token với Supabase) | Code server |
 | Lộ API key | Key OpenAI là secret trên Cloudflare, trình duyệt không bao giờ thấy | Hạ tầng |
-| Người dùng gửi tên model lạ để gọi model đắt hoặc không được phép | Worker chỉ nhận đúng 2 id trong danh sách cho phép (`gpt`, `gemini`); model nào chưa có key thì báo rõ "chưa cài đặt" | Code server |
 | Người dùng chèn system prompt riêng để "bẻ" Coach | Worker từ chối mọi tin nhắn `role: system` từ client | Code server |
 | Hội thoại khổng lồ đốt tiền | Giới hạn 40 tin nhắn, 60.000 ký tự; ô nhập tối đa 1.000 ký tự | Code server + UI |
 | Agent lặp vô hạn | Tối đa 8 bước mỗi lượt | Code client |
@@ -65,7 +64,7 @@ Nguyên tắc: **mức kiểm soát tăng theo mức ảnh hưởng.** Đọc th
 
 Vì sao chặn hoàn thành quest bằng code chứ không bằng prompt: prompt chỉ là lời dặn, model có thể quên. Hoàn thành quest đụng tới XP và streak (thứ người dùng quý nhất trong app), nên phải là **người** quyết định. Giống bài học buổi 3 và 5: *duyệt trên Buffer trước khi đăng*.
 
-**Kiểm chứng:** 297 test tự động (Vitest), trong đó có test: model gọi `move_quest` vào Done mà người dùng chưa duyệt thì quest **không** được hoàn thành; người dùng bấm Yes thì mới hoàn thành; bấm No (hoặc đóng khung chat) thì Coach nhận lời "người dùng từ chối, đừng thử lại".
+**Kiểm chứng:** 295 test tự động (Vitest), trong đó có test: model gọi `move_quest` vào Done mà người dùng chưa duyệt thì quest **không** được hoàn thành; người dùng bấm Yes thì mới hoàn thành; bấm No (hoặc đóng khung chat) thì Coach nhận lời "người dùng từ chối, đừng thử lại".
 
 ## 5. Làm chủ và chỉ huy Agent
 
@@ -97,7 +96,6 @@ Vì sao chặn hoàn thành quest bằng code chứ không bằng prompt: prompt
 2. **Không cho agent quyền xóa.** Rủi ro mất dữ liệu lớn hơn lợi ích; người dùng tự xóa trong 1 giây.
 3. **Hoàn thành quest phải duyệt bằng code.** (mục 4)
 4. **Undo ở mức cả lượt, nhưng không bao giờ ghi đè thay đổi của người dùng.**
-5. **Cho người dùng chọn model (GPT hoặc Gemini Flash), mặc định GPT.** Gemini Flash có gói miễn phí nhưng hạn mức thấp, hay bị đổi, và Google được dùng dữ liệu gói miễn phí để cải thiện sản phẩm, nên chỉ là lựa chọn, không phải mặc định. Gemini dùng cùng định dạng gọi tool với OpenAI, nên 4 tool và mọi guardrail giữ nguyên.
 
 ### Giới hạn còn biết
 

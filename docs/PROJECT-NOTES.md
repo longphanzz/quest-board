@@ -73,6 +73,7 @@ Cập nhật: 2026-10-03. File này ghi lại toàn bộ bối cảnh để ti�
 
 ## 4. Việc khác có thể làm sau
 - ĐÃ deploy (2026-10-06): Cloudflare Workers (static assets, `wrangler.jsonc`), nối GitHub `longphanzz/quest-board` → push `master` là tự build. Link: https://quest-board.scratch-2026-09-12-9c5ee7.workers.dev. Build command `npm run build`, deploy `npx wrangler deploy`, 2 biến VITE_SUPABASE_* đặt ở Build variables.
+- Key AI của Coach (2026-10-22): `OPENAI_API_KEY` là **wrangler secret trên Cloudflare** (`npx wrangler secret put OPENAI_API_KEY`), key OpenAI tên `quest_board_cloudflare`. Coach chỉ dùng GPT: đã thử thêm Gemini (19–22/10) rồi gỡ hẳn vì key Google bị 403 (tài khoản chưa đủ điều kiện). Bài học: 10/10 chuyển Coach từ Supabase Edge Function sang Worker nhưng quên chuyển key → Coach trên app thật hỏng tới 22/10. Kiểm tra bằng `npx wrangler secret list`. Key cũ trên Supabase/OpenAI cần xóa.
 - Supabase Auth đã cấu hình (2026-10-07): Site URL = link workers.dev, Redirect URLs gồm `<link>/**` (+ localhost cho dev). Đăng nhập Google trên bản online đã chạy.
 
 ## 5. Về người dùng

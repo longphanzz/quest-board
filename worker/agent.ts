@@ -5,31 +5,11 @@ export interface Env {
   ASSETS: { fetch: (req: Request) => Promise<Response> };
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
-  GEMINI_API_KEY?: string;
   SUPABASE_URL: string;
   SUPABASE_PUBLISHABLE_KEY: string;
 }
 
 const DEFAULT_MODEL = 'gpt-6-luna';
-
-// The user picks one of these by id; anything else is rejected. Gemini speaks the same chat-completions format.
-// gpt-6-luna rejects tools + reasoning on chat/completions, so reasoning is off; Gemini 3 cannot turn it off.
-const PROVIDERS = {
-  gpt: {
-    url: 'https://api.openai.com/v1/chat/completions',
-    key: (env: Env) => env.OPENAI_API_KEY,
-    keyName: 'OPENAI_API_KEY',
-    model: (env: Env) => env.OPENAI_MODEL || DEFAULT_MODEL,
-    effort: 'none',
-  },
-  gemini: {
-    url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-    key: (env: Env) => env.GEMINI_API_KEY,
-    keyName: 'GEMINI_API_KEY',
-    model: () => 'gemini-3.8-flash',
-    effort: 'low',
-  },
-};
 const MAX_MESSAGES = 40;
 const MAX_BODY_CHARS = 60_000;
 
@@ -123,20 +103,17 @@ async function isSignedIn(req: Request, env: Env): Promise<boolean> {
 export async function handleAgent(req: Request, env: Env): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
   if (!(await isSignedIn(req, env))) return json({ error: 'Sign in required' }, 401);
+  if (!env.OPENAI_API_KEY) return json({ error: 'OPENAI_API_KEY is not set' }, 500);
+
   // Cap input so one user cannot run up the OpenAI bill with a huge history.
   const raw = await req.text();
   if (raw.length > MAX_BODY_CHARS) return json({ error: 'Conversation too long' }, 413);
   let messages: unknown;
-  let providerId: unknown;
   try {
-    ({ messages, provider: providerId = 'gpt' } = JSON.parse(raw));
+    messages = JSON.parse(raw).messages;
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
   }
-  const provider = Object.hasOwn(PROVIDERS, String(providerId)) ? PROVIDERS[providerId as keyof typeof PROVIDERS] : null;
-  if (!provider) return json({ error: 'Unknown model' }, 400);
-  const key = provider.key(env);
-  if (!key) return json({ error: `This model is not set up yet (${provider.keyName} missing)` }, 503);
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
     return json({ error: `messages must be an array of 1-${MAX_MESSAGES} items` }, 400);
   }
@@ -145,18 +122,19 @@ export async function handleAgent(req: Request, env: Env): Promise<Response> {
     return json({ error: 'Invalid message' }, 400);
   }
 
-  const res = await fetch(provider.url, {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    // gpt-6-luna rejects tools + reasoning on chat/completions; shortcut: reasoning off, move to /v1/responses if reasoning is needed.
     body: JSON.stringify({
-      model: provider.model(env),
+      model: env.OPENAI_MODEL || DEFAULT_MODEL,
       messages: [{ role: 'system', content: SYSTEM }, ...messages],
       tools,
-      reasoning_effort: provider.effort,
+      reasoning_effort: 'none',
     }),
   });
   if (!res.ok) {
-    console.error('AI provider error', providerId, res.status, await res.text());
+    console.error('OpenAI error', res.status, await res.text());
     return json({ error: 'AI request failed' }, 502);
   }
   const data = (await res.json()) as { choices: { message: unknown }[] };
